@@ -1,14 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
-import { App } from '../../App';
+import { NetworkLab } from '../NetworkLab';
 
-describe('IBM Carbon On-Premise FPMS & Network Digital Twin Console UI', () => {
+describe('네트워크 분석(실험) — NetworkLab', () => {
   it('renders pure Carbon UI Shell, diagnoses multi-firewall path (SR-2026-0412), and auto-applies remediation to open the path', () => {
-    render(<App />);
+    render(<NetworkLab />);
 
-    expect(
-      screen.getByText(/On-Premise FPMS & Network Digital Twin/i),
-    ).toBeInTheDocument();
+    expect(screen.getByText(/1\. 통신 경로 분석기/i)).toBeInTheDocument();
 
     // Initially SR-2026-0412 (WAS -> DB 1521) is BLOCKED at SECUI BLUEMAX
     expect(screen.getByText(/경유 구간 차단 탐지/i)).toBeInTheDocument();
@@ -30,7 +28,7 @@ describe('IBM Carbon On-Premise FPMS & Network Digital Twin Console UI', () => {
   });
 
   it('switches to Firewall Audit tab via Carbon UI Shell, displays REA findings, and cleans up offending rules', () => {
-    render(<App />);
+    render(<NetworkLab />);
 
     const auditNavLinks = screen.getAllByText(/2\. 방화벽 정책 감사/i);
     fireEvent.click(auditNavLinks[0]!);
@@ -50,9 +48,9 @@ describe('IBM Carbon On-Premise FPMS & Network Digital Twin Console UI', () => {
   });
 
   it('switches to Multi-Vendor Config Builder tab via Carbon UI Shell and merges a parsed vendor config into the Digital Twin', () => {
-    render(<App />);
+    render(<NetworkLab />);
 
-    const builderNavLinks = screen.getAllByText(/3\. 멀티벤더 Config 파서/i);
+    const builderNavLinks = screen.getAllByText(/3\. 방화벽 규칙·라우팅 추가/i);
     fireEvent.click(builderNavLinks[0]!);
 
     expect(
@@ -70,9 +68,9 @@ describe('IBM Carbon On-Premise FPMS & Network Digital Twin Console UI', () => {
   });
 
   it('switches to Pre-Change Night-Work Simulator tab via Carbon UI Shell and detects core route regression', () => {
-    render(<App />);
+    render(<NetworkLab />);
 
-    const mopNavLinks = screen.getAllByText(/4\. 야간 작업/i);
+    const mopNavLinks = screen.getAllByText(/4\. 작업 전 변경 영향도/i);
     fireEvent.click(mopNavLinks[0]!);
 
     const breakRouteBtn = screen.getByRole('button', {

@@ -1,7 +1,7 @@
 # TA Migration Lab — Makefile
 .DEFAULT_GOAL := check
 
-check: doc-budget lint typecheck test build ## offline deterministic verification gate
+check: doc-budget lint typecheck test kit build ## offline deterministic verification gate
 	@echo "✓ make check: all offline deterministic checks passed"
 
 doc-budget: ## enforce harness entry-doc existence and line budgets
@@ -51,9 +51,28 @@ build: ## run build if configured in package.json
 		npm run build; \
 	fi
 
+# Python 자산 키트(kit/): kit/.venv가 있으면 그 인터프리터, 없으면 python3 (openpyxl·pytest·ruff 필요)
+KIT_PY ?= $(if $(wildcard kit/.venv/bin/python),$(abspath kit/.venv/bin/python),python3)
+
+kit: ## onprem-atlas Python kit: ruff + pytest (synthetic data only)
+	@cd kit && $(KIT_PY) -m ruff check src tests && $(KIT_PY) -m pytest -q
+
+kit-setup: ## create kit/.venv with test extras (needs network once)
+	@cd kit && uv venv .venv && uv pip install --python .venv/bin/python -e '.[test]'
+
+ATLAS_DEMO ?= kit/demo
+
+atlas-demo: ## synthetic 5,000-asset demo: two ESM syncs → SQLite → API :8770 (run `npm run dev` for the console)
+	@mkdir -p $(ATLAS_DEMO) && rm -f $(ATLAS_DEMO)/atlas.db $(ATLAS_DEMO)/atlas.db-wal $(ATLAS_DEMO)/atlas.db-shm
+	@cd kit && PYTHONPATH=src $(KIT_PY) -m onprem_atlas.cli synth --out demo/esm-2026-10-01.xlsx --drift-out demo/esm-2026-10-21.xlsx
+	@cd kit && PYTHONPATH=src $(KIT_PY) -m onprem_atlas.cli import demo/esm-2026-10-01.xlsx --db demo/atlas.db
+	@cd kit && PYTHONPATH=src $(KIT_PY) -m onprem_atlas.cli import demo/esm-2026-10-21.xlsx --db demo/atlas.db
+	@cd kit && PYTHONPATH=src $(KIT_PY) -m onprem_atlas.cli classify --db demo/atlas.db
+	@cd kit && PYTHONPATH=src $(KIT_PY) -m onprem_atlas.cli serve --db demo/atlas.db --port 8770
+
 smoke-local: check ## local smoke test alias
 
-.PHONY: check doc-budget test lint typecheck build smoke-local
+.PHONY: check doc-budget test lint typecheck build kit kit-setup atlas-demo smoke-local
 
 # ===== overnight harness targets (append to your Makefile) =====
 # The overnight runner + helpers are the Single Source of Truth in the overnight-harness

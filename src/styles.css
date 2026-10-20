@@ -1,6 +1,192 @@
-/* Pure IBM Carbon Design System (@carbon/styles) base reset only */
+/* 셸 레이아웃만 둔다(색·간격은 Carbon 토큰). 컴포넌트별 스타일 override 금지 — docs/DECISIONS.md */
 html,
 body {
   margin: 0;
   padding: 0;
+}
+
+.atlas-root {
+  min-height: 100vh;
+  background: var(--cds-background);
+}
+
+.atlas-header-search {
+  flex: 0 1 28rem;
+  margin-left: 2rem;
+}
+
+.atlas-shell {
+  display: grid;
+  grid-template-columns: 16rem minmax(0, 1fr);
+  padding-top: 3rem; /* 고정 Header 높이 */
+  min-height: 100vh;
+  box-sizing: border-box;
+}
+
+.atlas-shell--collapsed {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.atlas-nav {
+  background: var(--cds-layer-01);
+  border-right: 1px solid var(--cds-border-subtle-01);
+  padding: 1rem 0;
+}
+
+.atlas-nav ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  position: sticky;
+  top: 4rem;
+}
+
+.atlas-nav__group {
+  padding: 1.25rem 1rem 0.5rem;
+  font-size: var(--cds-label-01-font-size, 0.75rem);
+  letter-spacing: 0.32px;
+  color: var(--cds-text-secondary);
+}
+
+.atlas-nav__item {
+  display: block;
+  width: 100%;
+  padding: 0.6875rem 1rem;
+  border: 0;
+  border-left: 3px solid transparent;
+  background: none;
+  color: var(--cds-text-secondary);
+  font: inherit;
+  font-size: 0.875rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.atlas-nav__item:hover {
+  background: var(--cds-layer-hover-01);
+  color: var(--cds-text-primary);
+}
+
+.atlas-nav__item--active {
+  border-left-color: var(--cds-border-interactive);
+  background: var(--cds-layer-selected-01);
+  color: var(--cds-text-primary);
+  font-weight: 600;
+}
+
+.atlas-main {
+  padding: 1.5rem 2rem 3rem;
+  min-width: 0;
+}
+
+.atlas-page-header {
+  margin-bottom: 1.5rem;
+}
+
+.atlas-page-header__row {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 0.5rem;
+}
+
+.atlas-page-title {
+  font-size: 1.75rem;
+  font-weight: 400;
+  line-height: 1.29;
+  margin: 0;
+  color: var(--cds-text-primary);
+}
+
+.atlas-page-subtitle,
+.atlas-muted {
+  color: var(--cds-text-secondary);
+  font-size: 0.875rem;
+  margin: 0.25rem 0 0;
+}
+
+.atlas-grid {
+  margin-inline: -1rem;
+  row-gap: 1rem;
+}
+
+.atlas-kpi {
+  height: 100%;
+  min-height: 9rem;
+  box-sizing: border-box;
+}
+
+.atlas-kpi__label {
+  font-size: 0.875rem;
+  color: var(--cds-text-secondary);
+  margin: 0;
+}
+
+.atlas-kpi__value {
+  font-size: 2.625rem;
+  font-weight: 300;
+  line-height: 1.2;
+  margin: 0.5rem 0;
+  color: var(--cds-text-primary);
+}
+
+.atlas-kpi__detail {
+  font-size: 0.75rem;
+  color: var(--cds-text-secondary);
+}
+
+.atlas-tags {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+.atlas-widget {
+  height: 100%;
+  box-sizing: border-box;
+}
+
+.atlas-widget--table {
+  padding: 0;
+}
+
+.atlas-widget__title {
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0 0 1rem;
+  color: var(--cds-text-primary);
+}
+
+.atlas-widget--table .atlas-widget__title,
+.atlas-widget--table > .atlas-muted {
+  padding: 1rem 1rem 0;
+}
+
+.atlas-diff-summary {
+  margin-bottom: 1rem;
+}
+
+.atlas-dist {
+  margin-bottom: 0.75rem;
+}
+
+.atlas-toolbar {
+  padding: 0 0 0.5rem;
+}
+
+.atlas-clickable-row {
+  cursor: pointer;
+}
+
+@media (max-width: 42rem) {
+  .atlas-shell {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .atlas-nav {
+    display: none;
+  }
+  .atlas-header-search {
+    display: none;
+  }
 }

@@ -4,7 +4,7 @@ Last Updated: 2026-10-21
 
 This file is a compressed context for session start (≤60 lines). For details, open linked documents only when needed.
 
-> ▶ NEXT SESSION: All P0–P4 and On-Premise IBM Carbon FPMS & Network Digital Twin milestones (24/24 tests) are verified (`make check` green) and pushed to `origin/main`. See `docs/NEXT_PLAN.md` for optional deployment tasks.
+> ▶ NEXT SESSION: Kit P3 — project-scoped deterministic draw.io diagram (`kit/src/onprem_atlas/diagram`) + console project diagram page; then P8 assistant panel. P1/P2/P2.5 + console shell are done (`docs/images/atlas-dashboard.png`). K2–K6 still await the user.
 
 ## Snapshot
 
@@ -14,7 +14,8 @@ This file is a compressed context for session start (≤60 lines). For details, 
 
 Authority: `docs/NEXT_PLAN.md`.
 
-1. **Completed**: Pure IBM Carbon UI overhaul, AWS Reachability Analyzer UX, 4-target `rea@6.5.0` precision reverse engineering (`cidr-tools`, `ipaddr.js`, `luci-app-firewall`, `@containerlab/clab-viewer`), 24/24 tests, and GitHub push (`https://github.com/men16922/ta-migration-reference-pack`).
+1. **Active**: On-prem asset kit for AWS migration — ESM xlsx → SQLite (P1/P2/P2.5 + read API + console shell done) → project-scoped draw.io diagrams + sizing input export. No agent/sizing math (company has them); UI = Carbon IBM Cloud console style with Gemini/Copilot-style assistant panel; no MCP.
+2. **Completed**: Pure IBM Carbon UI overhaul, AWS Reachability Analyzer UX, 4-target `rea@6.5.0` precision reverse engineering (`cidr-tools`, `ipaddr.js`, `luci-app-firewall`, `@containerlab/clab-viewer`), 24/24 tests, and GitHub push (`https://github.com/men16922/ta-migration-reference-pack`).
 
 ## Read Order
 
@@ -25,7 +26,7 @@ Authority: `docs/NEXT_PLAN.md`.
 
 ## Commands
 
-- Verification Gate: `make check`
+- Verification Gate: `make check` (includes `make kit`: Python ruff + pytest; `make kit-setup` creates `kit/.venv`)
 - Doc Budget Check: `make doc-budget`
 - Unit & Component Tests: `npm test`
 - Production Build: `npm run build`
@@ -33,4 +34,4 @@ Authority: `docs/NEXT_PLAN.md`.
 ## Guardrails
 
 - Synthetic/public data only; never connect to corporate networks, live Docker sockets from the browser, or live AWS/GCP accounts during automated loops.
-- Keep `src/styles.css` free of custom component CSS overrides so `@carbon/styles` governs 100% of styling.
+- `src/styles.css` holds console shell layout only (grid, nav, page header) using Carbon tokens; no per-component overrides of Carbon styles.

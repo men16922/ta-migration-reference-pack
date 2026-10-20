@@ -1,0 +1,12 @@
+{
+  "sheet": null,
+  "header_row": null,
+  "columns": {
+    "system_name": "업무시스템명"
+  },
+  "synonyms": {
+    "owner": ["운영부서", "정 담당자"],
+    "zone": ["네트워크 구분"]
+  },
+  "memory_unit": "auto"
+}
