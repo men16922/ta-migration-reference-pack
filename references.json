@@ -1,0 +1,108 @@
+{
+  "checkedOn": "2026-10-20",
+  "runtimeTestsPerformed": false,
+  "references": [
+    {
+      "id": "containerlab-gui",
+      "title": "Containerlab GUI",
+      "url": "https://containerlab.dev/manual/gui/",
+      "evidenceType": "official-documentation"
+    },
+    {
+      "id": "containerlab-viewer",
+      "title": "Containerlab embeddable viewer",
+      "url": "https://github.com/srl-labs/containerlab-app/blob/main/packages/clab-viewer/README.md",
+      "evidenceType": "repository-documentation"
+    },
+    {
+      "id": "containerlab-editor",
+      "title": "Containerlab shared UI",
+      "url": "https://github.com/srl-labs/containerlab-app/blob/main/packages/clab-ui/README.md",
+      "evidenceType": "repository-documentation"
+    },
+    {
+      "id": "containerlab-topology",
+      "title": "Containerlab topology format",
+      "url": "https://containerlab.dev/manual/topo-def-file/",
+      "evidenceType": "official-documentation"
+    },
+    {
+      "id": "containerlab-macos",
+      "title": "Containerlab on macOS",
+      "url": "https://containerlab.dev/macos/",
+      "evidenceType": "official-documentation"
+    },
+    {
+      "id": "netbox-intro",
+      "title": "NetBox introduction",
+      "url": "https://netboxlabs.com/docs/netbox/introduction/",
+      "evidenceType": "official-documentation"
+    },
+    {
+      "id": "netbox-interface",
+      "title": "NetBox Interface model",
+      "url": "https://github.com/netbox-community/netbox/blob/6b86582935cad46f2eebe8fda7369ce0c6f7e8d4/netbox/dcim/models/device_components.py",
+      "evidenceType": "source-read-partial"
+    },
+    {
+      "id": "batfish-bidi-source",
+      "title": "Batfish BidirectionalTrace",
+      "url": "https://github.com/batfish/batfish/blob/master/projects/common/src/main/java/org/batfish/datamodel/flow/BidirectionalTrace.java",
+      "evidenceType": "source-read"
+    },
+    {
+      "id": "batfish-forwarding",
+      "title": "Batfish forwarding questions",
+      "url": "https://batfish.readthedocs.io/en/latest/notebooks/forwarding.html",
+      "evidenceType": "official-documentation"
+    },
+    {
+      "id": "batfish-diff",
+      "title": "Batfish differential questions",
+      "url": "https://batfish.readthedocs.io/en/latest/notebooks/differentialQuestions.html",
+      "evidenceType": "official-documentation"
+    },
+    {
+      "id": "batfish-supported",
+      "title": "Batfish supported platforms",
+      "url": "https://batfish.readthedocs.io/en/latest/supported_devices.html",
+      "evidenceType": "official-documentation"
+    },
+    {
+      "id": "ipfabric-path",
+      "title": "IP Fabric Path Lookup",
+      "url": "https://docs.ipfabric.io/main/IP_Fabric_GUI/diagrams/how_to_use_path-lookup/",
+      "evidenceType": "official-documentation"
+    },
+    {
+      "id": "forward-predict",
+      "title": "Forward Predict",
+      "url": "https://www.forwardnetworks.com/predict/",
+      "evidenceType": "vendor-product-claim"
+    },
+    {
+      "id": "aws-transform",
+      "title": "AWS Transform network migration",
+      "url": "https://docs.aws.amazon.com/transform/latest/userguide/transform-vmware-migrate-network.html",
+      "evidenceType": "official-documentation"
+    },
+    {
+      "id": "aws-reachability",
+      "title": "AWS Reachability Analyzer model scope",
+      "url": "https://docs.aws.amazon.com/vpc/latest/reachability/how-reachability-analyzer-works.html",
+      "evidenceType": "official-documentation"
+    },
+    {
+      "id": "netlab-validation",
+      "title": "netlab validation",
+      "url": "https://netlab.tools/topology/validate/",
+      "evidenceType": "official-documentation"
+    },
+    {
+      "id": "rea",
+      "title": "REA README",
+      "url": "https://github.com/morluto/rea",
+      "evidenceType": "repository-documentation"
+    }
+  ]
+}

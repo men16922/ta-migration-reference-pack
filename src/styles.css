@@ -1,0 +1,6 @@
+/* Pure IBM Carbon Design System (@carbon/styles) base reset only */
+html,
+body {
+  margin: 0;
+  padding: 0;
+}

@@ -1,0 +1,8 @@
+node_modules/
+dist/
+.vite/
+coverage/
+scripts/overnight/logs/
+scripts/overnight/STOP
+scripts/overnight/DONE
+docs/test/history/*-overnight-review-checklist.md
