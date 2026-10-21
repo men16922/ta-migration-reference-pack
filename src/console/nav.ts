@@ -2,6 +2,7 @@ export type ConsolePage =
   | { id: 'dashboard' }
   | { id: 'projects' }
   | { id: 'project'; code: string }
+  | { id: 'diagram'; project?: string }
   | { id: 'assets'; q?: string }
   | { id: 'review'; rule?: string }
   | { id: 'sync' }
@@ -10,6 +11,7 @@ export type ConsolePage =
 export const NAV_ITEMS: Array<{ id: ConsolePage['id']; label: string; group?: string }> = [
   { id: 'dashboard', label: '대시보드' },
   { id: 'projects', label: '프로젝트', group: '자산' },
+  { id: 'diagram', label: '구성도', group: '자산' },
   { id: 'assets', label: '자산 목록', group: '자산' },
   { id: 'review', label: '준비도 검토', group: '이관 준비' },
   { id: 'sync', label: '동기화 이력', group: '이관 준비' },

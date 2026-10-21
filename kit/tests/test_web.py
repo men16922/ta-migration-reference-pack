@@ -91,3 +91,15 @@ def test_real_uvicorn_server_serves_all_endpoints(tmp_path):
     finally:
         server.should_exit = True
         thread.join(timeout=5)
+
+
+def test_diagram_endpoints(client):
+    idc = client.get("/api/diagram/idc").json()
+    assert idc["stats"]["view"] == "idc" and idc["boxes"] and idc["width"] > 0
+    code = client.get("/api/projects", params={"page_size": 1}).json()["items"][0]["code"]
+    p = client.get(f"/api/diagram/project/{code}").json()
+    assert p["stats"]["project"] == code and p["stats"]["shown"] == p["stats"]["servers"]
+    r = client.get(f"/api/diagram/project/{code}", params={"format": "drawio"})
+    assert r.status_code == 200 and r.text.startswith("<mxfile") and f'{code}-run2.drawio' in r.headers["content-disposition"]
+    assert client.get("/api/diagram/project/zzz-none").status_code == 404
+    assert client.get("/api/diagram/idc", params={"format": "svg"}).status_code == 422

@@ -11,6 +11,7 @@ import {
 import { Api, Asleep, Light } from '@carbon/icons-react';
 import { NAV_ITEMS, navIdOf, type ConsolePage } from './console/nav';
 import { DashboardPage } from './console/pages/DashboardPage';
+import { DiagramPage } from './console/pages/DiagramPage';
 import { AssetsPage, ProjectDetailPage, ProjectsPage, ReviewPageView, SyncPage } from './console/pages/ListPages';
 import { NetworkLab } from './components/NetworkLab';
 
@@ -95,6 +96,7 @@ export const App: React.FC = () => {
           {page.id === 'dashboard' && <DashboardPage go={go} />}
           {page.id === 'projects' && <ProjectsPage go={go} />}
           {page.id === 'project' && <ProjectDetailPage key={page.code} go={go} code={page.code} />}
+          {page.id === 'diagram' && <DiagramPage key={page.project ?? ''} go={go} project={page.project} />}
           {page.id === 'assets' && <AssetsPage key={page.q ?? ''} go={go} initialQuery={page.q} />}
           {page.id === 'review' && <ReviewPageView key={page.rule ?? ''} go={go} rule={page.rule} />}
           {page.id === 'sync' && <SyncPage go={go} />}

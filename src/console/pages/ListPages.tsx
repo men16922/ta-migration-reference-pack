@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Column, ContentSwitcher, Grid, Search, Switch, Tag, Tile } from '@carbon/react';
+import { Column, ContentSwitcher, Grid, Search, Switch, Tab, TabList, TabPanel, TabPanels, Tabs, Tag, Tile } from '@carbon/react';
 import {
   apiPath,
   ENV_LABELS,
@@ -15,6 +15,7 @@ import {
 } from '../api';
 import { ApiGate, PageHeader, Pager, SeverityTag, SimpleTable, type Column as TableColumn } from '../common';
 import type { ConsolePage } from '../nav';
+import { DiagramView } from './DiagramPage';
 
 type Go = (page: ConsolePage) => void;
 
@@ -97,14 +98,31 @@ export const ProjectDetailPage: React.FC<{ go: Go; code: string }> = ({ go, code
         title={name}
         subtitle={`프로젝트 코드 ${code}${state.data ? ` · 자산 ${fmt(state.data.total)}대` : ''}`}
       />
-      <ApiGate state={state}>
-        {(p) => (
-          <>
-            <SimpleTable title="자산" columns={ASSET_COLUMNS.filter((c) => c.key !== 'project')} rows={p.items} rowKey={(r) => r.key} />
-            <Pager page={paging.page} pageSize={paging.pageSize} total={p.total} onChange={paging.set} />
-          </>
-        )}
-      </ApiGate>
+      <Tabs>
+        <TabList aria-label="프로젝트 보기">
+          <Tab>구성도</Tab>
+          <Tab>자산</Tab>
+        </TabList>
+        <TabPanels>
+          <TabPanel className="atlas-tab-panel">
+            <DiagramView
+              path={apiPath(`diagram/project/${encodeURIComponent(code)}`)}
+              drawioPath={apiPath(`diagram/project/${encodeURIComponent(code)}`, { format: 'drawio' })}
+              go={go}
+            />
+          </TabPanel>
+          <TabPanel className="atlas-tab-panel">
+            <ApiGate state={state}>
+              {(p) => (
+                <>
+                  <SimpleTable title="자산" columns={ASSET_COLUMNS.filter((c) => c.key !== 'project')} rows={p.items} rowKey={(r) => r.key} />
+                  <Pager page={paging.page} pageSize={paging.pageSize} total={p.total} onChange={paging.set} />
+                </>
+              )}
+            </ApiGate>
+          </TabPanel>
+        </TabPanels>
+      </Tabs>
     </>
   );
 };

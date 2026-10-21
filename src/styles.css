@@ -190,3 +190,212 @@ body {
     display: none;
   }
 }
+
+/* 구성도 (kit diagram 레이아웃 → SVG). 색은 Carbon 토큰, 역할·망구분 색만 레이아웃 JSON에서 온다. */
+.atlas-tab-panel {
+  padding: 1rem 0 0;
+}
+
+.atlas-dg-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.atlas-dg-picker .cds--content-switcher {
+  width: 16rem;
+}
+
+.atlas-dg-picker .cds--list-box__wrapper {
+  width: 24rem;
+  max-width: 100%;
+}
+
+.atlas-dg-panel {
+  background: var(--cds-layer-01);
+  border: 1px solid var(--cds-border-subtle-01);
+}
+
+.atlas-dg-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 1rem;
+  border-bottom: 1px solid var(--cds-border-subtle-01);
+}
+
+.atlas-dg-toolbar__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.atlas-dg-zoom {
+  min-width: 3rem;
+  text-align: center;
+  font-size: 0.75rem;
+}
+
+.atlas-dg-legend {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.75rem;
+  color: var(--cds-text-secondary);
+}
+
+.atlas-dg-legend__swatch {
+  width: 0.75rem;
+  height: 0.75rem;
+}
+
+.atlas-dg-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.atlas-dg-body--detail {
+  grid-template-columns: minmax(0, 1fr) 18rem;
+}
+
+.atlas-dg-frame {
+  overflow: auto;
+  max-height: 72vh;
+  padding: 0.5rem;
+  background: var(--cds-background);
+}
+
+.atlas-dg {
+  display: block;
+  font-family: var(--cds-body-compact-01-font-family, 'IBM Plex Sans', sans-serif);
+}
+
+.atlas-dg-box {
+  fill: var(--cds-layer-01);
+  stroke: var(--cds-border-subtle-01);
+}
+
+.atlas-dg-site {
+  stroke: var(--cds-border-strong-01);
+}
+
+.atlas-dg-env,
+.atlas-dg-band {
+  fill: var(--cds-layer-02);
+}
+
+.atlas-dg-subnet,
+.atlas-dg-band {
+  stroke-dasharray: 4 3;
+}
+
+.atlas-dg-title {
+  font-size: 20px;
+  fill: var(--cds-text-primary);
+}
+
+.atlas-dg-label {
+  font-size: 13px;
+  font-weight: 600;
+  fill: var(--cds-text-primary);
+}
+
+.atlas-dg-label--site {
+  font-size: 15px;
+}
+
+.atlas-dg-sub {
+  font-size: 11px;
+  fill: var(--cds-text-secondary);
+}
+
+.atlas-dg-node {
+  cursor: pointer;
+  outline: none;
+}
+
+.atlas-dg-card {
+  fill: var(--cds-layer-01);
+  stroke: var(--cds-border-subtle-01);
+}
+
+.atlas-dg-node:hover .atlas-dg-card,
+.atlas-dg-node:focus-visible .atlas-dg-card {
+  fill: var(--cds-layer-hover-01);
+  stroke: var(--cds-border-interactive);
+}
+
+.atlas-dg-node--selected .atlas-dg-card {
+  stroke: var(--cds-border-interactive);
+  stroke-width: 2;
+}
+
+.atlas-dg-node-label {
+  font-size: 12px;
+  font-weight: 600;
+  fill: var(--cds-text-primary);
+}
+
+.atlas-dg-edge {
+  fill: none;
+  stroke: var(--cds-icon-secondary);
+  stroke-width: 1.25;
+}
+
+.atlas-dg-edge--inferred {
+  stroke-dasharray: 6 4;
+}
+
+.atlas-dg-arrowhead {
+  fill: var(--cds-icon-secondary);
+}
+
+.atlas-dg-detail {
+  padding: 1rem;
+  border-left: 1px solid var(--cds-border-subtle-01);
+  max-height: 72vh;
+  overflow: auto;
+}
+
+.atlas-dg-detail__list {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.375rem 0.75rem;
+  margin: 0.75rem 0;
+  font-size: 0.875rem;
+}
+
+.atlas-dg-detail__list dt {
+  color: var(--cds-text-secondary);
+}
+
+.atlas-dg-detail__list dd {
+  color: var(--cds-text-primary);
+  overflow-wrap: anywhere;
+}
+
+.atlas-dg-detail__hosts {
+  margin: 0.25rem 0 0.75rem;
+  font-size: 0.75rem;
+  color: var(--cds-text-primary);
+  line-height: 1.5;
+}
+
+.atlas-dg-notes {
+  padding: 0.5rem 1rem 0.75rem;
+  font-size: 0.75rem;
+}
+
+@media (max-width: 66rem) {
+  .atlas-dg-body--detail {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .atlas-dg-detail {
+    border-left: 0;
+    border-top: 1px solid var(--cds-border-subtle-01);
+  }
+}

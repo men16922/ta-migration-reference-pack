@@ -12,8 +12,10 @@ from pathlib import Path
 from typing import Any
 
 from fastapi import APIRouter, Depends, FastAPI, HTTPException, Query
+from fastapi.responses import Response
 
 from ..classify import ClassifyProfile, classify_run
+from ..diagram import render
 from ..diff import diff_runs
 from ..review import SEVERITY_ORDER, is_server, review_run
 from ..store import AtlasStore
@@ -145,6 +147,29 @@ def create_router(db_path: str | Path, classify_profile: ClassifyProfile | None 
         except ValueError as e:
             raise HTTPException(400, str(e)) from e
         return {**d, "added": d["added"][:limit], "removed": d["removed"][:limit], "changed": d["changed"][:limit]}
+
+    def _diagram(store: AtlasStore, view: str, project: str | None, fmt: str, max_nodes: int) -> Any:
+        try:
+            layout, xml = render(store, view, project=project, profile=profile, max_nodes=max_nodes)
+        except ValueError as e:
+            raise HTTPException(404, str(e)) from e
+        if fmt == "drawio":
+            name = f"{project or 'idc'}-run{layout['stats']['run']['id']}.drawio"
+            return Response(xml, media_type="application/vnd.jgraph.mxfile", headers={"Content-Disposition": f'attachment; filename="{name}"'})
+        return layout
+
+    @router.get("/diagram/idc")
+    def diagram_idc(format: str = Query("json", pattern="^(json|drawio)$"), store: AtlasStore = Depends(get_store)) -> Any:  # noqa: A002, B008
+        return _diagram(store, "idc", None, format, 60)
+
+    @router.get("/diagram/project/{code}")
+    def diagram_project(
+        code: str,
+        format: str = Query("json", pattern="^(json|drawio)$"),  # noqa: A002
+        max_nodes: int = Query(60, ge=1, le=500),
+        store: AtlasStore = Depends(get_store),  # noqa: B008
+    ) -> Any:
+        return _diagram(store, "project", code, format, max_nodes)
 
     return router
 

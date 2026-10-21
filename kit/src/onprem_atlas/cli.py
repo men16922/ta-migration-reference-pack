@@ -5,6 +5,7 @@ onprem-atlas import 자산목록.xlsx --db atlas.db [--sheet] [--profile]
 onprem-atlas runs --db atlas.db
 onprem-atlas search 키워드 --db atlas.db [--limit 20]
 onprem-atlas issues --db atlas.db [--run N] [--severity error|warning] [--code CODE]
+onprem-atlas diagram --db atlas.db --view idc|project [--project 코드] --out 구성도.drawio [--layout 레이아웃.json]
 onprem-atlas synth --out 합성.xlsx [--count 5000] [--seed N]
 """
 
@@ -165,6 +166,21 @@ def cmd_diff(a: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_diagram(a: argparse.Namespace) -> int:
+    from .classify import ClassifyProfile
+    from .diagram import render
+
+    with AtlasStore(a.db) as store:
+        layout, xml = render(store, a.view, project=a.project, profile=ClassifyProfile.load(a.profile), max_nodes=a.max_nodes, run_id=a.run)
+    Path(a.out).write_text(xml, encoding="utf-8")
+    if a.layout:
+        Path(a.layout).write_text(json.dumps(layout, ensure_ascii=False, indent=1), encoding="utf-8")
+    st = layout["stats"]
+    shown = f"표시 {st['shown']}/{st['servers']}대{' (역할별 집계)' if st['aggregated'] else ''}" if a.view == "project" else f"자산 {st['assets']}대 집계"
+    _emit({"out": a.out, **st}, a.json, f"{a.out}: {a.view} 구성도 · {shown} · 상자 {len(layout['boxes'])} · 화살표 {len(layout['edges'])}")
+    return 0
+
+
 def cmd_serve(a: argparse.Namespace) -> int:
     try:
         import uvicorn
@@ -238,6 +254,17 @@ def build_parser() -> argparse.ArgumentParser:
     sp.add_argument("--limit", type=int, default=50)
     common(sp)
     sp.set_defaults(func=cmd_diff)
+
+    sp = sub.add_parser("diagram", help="IDC·프로젝트 구성도(draw.io)")
+    sp.add_argument("--view", choices=["idc", "project"], default="project")
+    sp.add_argument("--project", help="프로젝트 코드 (project 보기)")
+    sp.add_argument("--out", required=True, help=".drawio 출력 경로")
+    sp.add_argument("--layout", help="레이아웃 JSON도 저장")
+    sp.add_argument("--max-nodes", type=int, default=60, help="넘으면 역할별 집계")
+    sp.add_argument("--profile", help="분류 프로파일 JSON")
+    sp.add_argument("--run", type=int)
+    common(sp)
+    sp.set_defaults(func=cmd_diagram)
 
     sp = sub.add_parser("serve", help="읽기 전용 HTTP API")
     sp.add_argument("--host", default="127.0.0.1")

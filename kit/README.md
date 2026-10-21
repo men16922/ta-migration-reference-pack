@@ -6,7 +6,7 @@ ESM 자산관리 엑셀(xlsx)을 SQLite에 동기화하고, 그 DB를 기준으�
 용량산정 계산·인스턴스 선정, AI 에이전트, AWS 정책 챗봇, AWS 아키텍처 검토는 **포함하지 않습니다**(이식 대상 시스템에 이미 있음).
 계획: [`../docs/plans/2026-10-21-onprem-asset-kit.md`](../docs/plans/2026-10-21-onprem-asset-kit.md)
 
-## 현재 범위 (P1·P2·P2.5 + 읽기 API)
+## 현재 범위 (P1·P2·P2.5·P3 + 읽기 API)
 
 | 모듈 | 하는 일 | 의존성 |
 |---|---|---|
@@ -15,9 +15,10 @@ ESM 자산관리 엑셀(xlsx)을 SQLite에 동기화하고, 그 DB를 기준으�
 | `onprem_atlas.classify` | 프로젝트 분류: 수동 지정 > 명명 규칙(정규식 이름 그룹) > 시스템명 컬럼(명명 규칙 결과에서 다수결 학습), 공통 인프라 판정 | — |
 | `onprem_atlas.review` | 데이터 품질·이관 준비도 규칙 8종, 프로젝트별 준비도(%) | — |
 | `onprem_atlas.diff` | 동기화 실행 간 추가·삭제·필드 변경 | — |
-| `onprem_atlas.web` | 읽기 전용 API(`/api/summary·projects·assets·review·runs·diff`), `create_router()`로 회사 FastAPI에 장착 | fastapi (선택 `[web]`) |
+| `onprem_atlas.diagram` | IDC 전체(망구분 × 역할 집계)·프로젝트(센터 → 환경 → 망구분 → /24 → 서버) 구성도. 결정적 배치 → 레이아웃 JSON + draw.io XML, 스타일 표 분리 | — |
+| `onprem_atlas.web` | 읽기 전용 API(`/api/summary·projects·assets·review·runs·diff·diagram/idc·diagram/project/{code}`, `?format=drawio`), `create_router()`로 회사 FastAPI에 장착 | fastapi (선택 `[web]`) |
 | `onprem_atlas.synth` | 명명 규칙을 따르는 합성 ESM 엑셀(기본 5,000행, 의도적 오류 포함) + 다음 동기화 시점(drift) | openpyxl |
-| `onprem_atlas.cli` | `inspect` · `import` · `runs` · `search` · `issues` · `classify` · `review` · `diff` · `serve` · `synth` | — |
+| `onprem_atlas.cli` | `inspect` · `import` · `runs` · `search` · `issues` · `classify` · `review` · `diff` · `diagram` · `serve` · `synth` | — |
 
 ## 실행
 
@@ -29,7 +30,17 @@ uv venv .venv && uv pip install --python .venv/bin/python -e '.[test]'   # 또�
 .venv/bin/onprem-atlas import demo/esm.xlsx --db demo/atlas.db
 .venv/bin/onprem-atlas search erp-was --db demo/atlas.db
 .venv/bin/onprem-atlas issues --db demo/atlas.db --severity error
+.venv/bin/onprem-atlas diagram --db demo/atlas.db --view idc --out demo/idc.drawio          # IDC 전체(집계)
+.venv/bin/onprem-atlas diagram --db demo/atlas.db --project erp --out demo/erp.drawio       # 프로젝트(서버 단위, 60대 넘으면 역할별 집계)
 ```
+
+구성도는 5,000건을 개별로 그리지 않습니다. IDC 보기는 센터 × 망구분 × 역할 집계, 프로젝트 보기는 그 프로젝트 서버만 그리고 공통 서비스·IDC 네트워크는 참조 상자로 붙입니다.
+draw.io 파일에는 역할별 아이콘(서버·웹 서버·스토리지·방화벽·로드밸런서·L3 스위치, draw.io 내장 벡터 도형)이 들어가며 `DEFAULT_STYLES["icon"]` 표만 바꾸면 회사 아이콘으로 교체됩니다.
+점선 화살표는 망구분·역할로 **추정한 흐름**입니다. 실제 연결 원천(연결 시트·Zabbix·방화벽 정책)은 아직 없어 TODO입니다.
+
+| IDC 전체 (draw.io에서 연 화면) | 프로젝트 (역할별 집계) |
+|---|---|
+| ![IDC](../docs/images/drawio-idc.png) | ![프로젝트 집계](../docs/images/drawio-mes4-agg.png) |
 
 실제 ESM 파일은 사내 PC에서 `inspect`만 먼저 돌려 매핑을 확인하세요. 출력에는 헤더 이름·건수·행 번호만 있어 공유해도 자산 값이 드러나지 않습니다.
 매핑이 틀리면 [`examples/mapping-profile.json`](examples/mapping-profile.json) 형식으로 `--profile`을 지정합니다.
@@ -42,6 +53,9 @@ npm run dev            # 다른 터미널: Carbon 콘솔 http://127.0.0.1:5173 (
 ```
 
 ![대시보드](../docs/images/atlas-dashboard.png)
+
+![IDC 구성도](../docs/images/atlas-idc-diagram.png)
+![프로젝트 구성도](../docs/images/atlas-project-diagram.png)
 
 ## 분류 프로파일
 

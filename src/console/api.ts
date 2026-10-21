@@ -109,6 +109,43 @@ export interface DiffResult {
   changed: Array<{ key: string; hostname: string; fields: Record<string, { before: unknown; after: unknown }> }>;
 }
 
+export interface DiagramBox {
+  id: string;
+  parent: string | null;
+  kind: 'title' | 'site' | 'env' | 'zone' | 'subnet' | 'band' | 'node' | 'agg';
+  label: string;
+  sublabel: string;
+  style: string;
+  color: string | null;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  meta: {
+    hostname?: string;
+    ip?: string | null;
+    os?: string | null;
+    cpu_model?: string | null;
+    cpu_cores?: number | null;
+    memory_gb?: number | null;
+    zone?: string | null;
+    status?: string | null;
+    count?: number;
+    hosts?: string[];
+  };
+}
+
+/** `GET /api/diagram/idc`, `/api/diagram/project/{code}` — 좌표는 내려받는 .drawio와 같다. */
+export interface DiagramLayout {
+  width: number;
+  height: number;
+  stats: { view: 'idc' | 'project'; assets: number; servers: number; shown?: number; aggregated: boolean; sites: string[]; project?: string; name?: string };
+  boxes: DiagramBox[];
+  edges: Array<{ id: string; source: string; target: string; label: string; kind: 'inferred' | 'link'; points: Array<[number, number]> }>;
+  legend: Array<{ style: string; label: string; color: string }>;
+  notes: string[];
+}
+
 export const ENV_LABELS: Record<string, string> = { p: '운영', d: '개발', s: '스테이징' };
 
 export function apiPath(path: string, params: Record<string, string | number | undefined> = {}): string {

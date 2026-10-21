@@ -4,7 +4,7 @@ Last Updated: 2026-10-21
 
 This file is a compressed context for session start (≤60 lines). For details, open linked documents only when needed.
 
-> ▶ NEXT SESSION: Kit P3 — project-scoped deterministic draw.io diagram (`kit/src/onprem_atlas/diagram`) + console project diagram page; then P8 assistant panel. P1/P2/P2.5 + console shell are done (`docs/images/atlas-dashboard.png`). K2–K6 still await the user.
+> ▶ NEXT SESSION: P8 assistant panel (Gemini/Copilot-style docked, SSE contract, no MCP). P1/P2/P2.5/P3 + console shell are done — IDC/project draw.io diagrams in `kit/src/onprem_atlas/diagram`, console 구성도 page (`docs/images/atlas-idc-diagram.png`). K2–K6 still await the user.
 
 ## Snapshot
 

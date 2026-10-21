@@ -83,6 +83,9 @@ onprem_kit/
 - 결정적 배치(같은 입력 → 같은 좌표·같은 XML), draw.io 자동 배치 미사용. 셀 ID는 자산 키 해시.
 - To-Be 표시: `sizing_results`가 있으면 자산 라벨에 권장 인스턴스를 덧붙이는 옵션.
 - 회사 draw.io 규격(diagram-bot `drawio_spec` 계열)을 받을 수 있게 스타일 표를 인자로 분리.
+- **IDC 보기(구현)**: 센터별 IDC 네트워크(방화벽·L4·L3 집계) → 망구분 열(역할 × 대수, 환경별 내역) → 공통 서비스. L3 → 망구분 점선은 추정.
+- 구현 메모(2026-10-21): 관계 원천이 없어 화살표는 망구분 계층(DMZ → 업무망 → DB망) 추정만 그린다(`kind: inferred`, 점선, "추정").
+  TODO: 연결 시트/방화벽 정책/Zabbix 의존성 → `kind: link` 실선, `focus` 보기, To-Be 라벨(P4), 서브넷 대장 연동(현재 IP /24 추정).
 
 ## 6. 에이전트 도구 (회사 Strands 에이전트에 등록)
 
@@ -107,7 +110,7 @@ onprem_kit/
 | P1 | `kit/` 골격, ingest+store+CLI(`import`, `inspect`), 합성 5,000건 생성기, 매핑 프로파일 | 5,000행 import < 5초, 재실행 결정성, pytest | `[auto]` |
 | P2 | diff + review(준비도 규칙) + CLI | 합성 두 실행 diff 골든 테스트 | `[auto]` |
 | P2.5 | classify: 명명 규칙·컬럼·수동 지정 프로파일, 분류 리포트(미분류·위반·충돌) | 합성 5,000건에서 규칙별 분류 골든 테스트 | `[auto]` |
-| P3 | graph + project/focus 배치 + draw.io XML | 골든 XML, 60대 프로젝트 렌더 < 1초, draw.io에서 열림 | `[auto]` |
+| P3 | graph + project/focus 배치 + draw.io XML | 골든 XML, 60대 프로젝트 렌더 < 1초, draw.io에서 열림 | **완료(2026-10-21)**: `idc`·`project` 보기, CLI `diagram`, API `/api/diagram/*`, 콘솔 구성도 페이지. 렌더 ≈30ms, draw.io 데스크톱 PNG 내보내기로 열림 확인. `focus` 보기는 TODO |
 | P4 | sizing_bridge: 입력 내보내기 + 결과 가져오기 + 구성도 To-Be 라벨 | 계약 스키마 테스트 | `[auto]`(계약 확정 후) |
 | P5 | tools + `strands.py` 어댑터 | 도구 단위 테스트, Strands 없이도 import 가능 | `[auto]` |
 | P6 | `docs/wiki` + `llms.txt` + 포팅 카드(L0–L4) | 문서 링크 검사 | `[auto]` |
