@@ -11,6 +11,11 @@ Authority: `docs/plans/2026-10-21-enterprise-idc-tool.md`. User direction supers
 - [ ] [manual] Connect company Agent: `AssetKnowledgeTools` + existing Strands registration or HTTP endpoint. Validate real-model citations and scope handling using approved data; no paid calls without authorization.
 - [ ] [manual] Bind company SSO/roles and audit identity before any shared deployment. Current app is local/loopback only.
 
+## Priority 1b — Port to company project as one menu
+
+- [ ] [manual] Run the porting agent with `docs/wiki/prompts/gpt-porting-kickoff.md` against the company repo; P0 stack profile first. Spec: `docs/wiki/40-porting-playbook.md`, auto incremental sync `docs/wiki/12-auto-incremental-sync.md` (S01–S19).
+- [ ] [manual] Answer decision items D-01–D-17 that differ from defaults (identity key, blank-cell overwrite, deletion scope, draw.io editor, org-level access).
+
 ## Priority 2 — Evidence-driven extensions
 
 - [ ] [manual] Prioritize remaining UX/data gaps from `docs/evaluation.md`: no-change upload skipping/retention, raw-only security-field diffs, manual drawing update comparison.

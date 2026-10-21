@@ -1,0 +1,181 @@
+{
+ "run": {
+  "id": 6,
+  "source_name": "servers.xlsx",
+  "sheet": "Sheet",
+  "finished_at": "2026-10-22T00:00:00+00:00",
+  "row_count": 3,
+  "asset_count": 7,
+  "error_count": 0,
+  "warning_count": 0
+ },
+ "assets": {
+  "total": 7,
+  "servers": 3,
+  "network": 4,
+  "shared": 0,
+  "unclassified": 4
+ },
+ "projects": 1,
+ "components": {
+  "total": 3,
+  "unmatched": 0
+ },
+ "readiness": {
+  "percent": 0,
+  "ready": 0,
+  "servers": 3
+ },
+ "by_severity": {
+  "high": 7,
+  "medium": 14,
+  "low": 7
+ },
+ "top_rules": [
+  {
+   "rule": "UNCLASSIFIED",
+   "severity": "high",
+   "title": "프로젝트 미분류",
+   "recommendation": "명명 규칙에 맞게 hostname을 정정하거나 시스템명 또는 수동 지정 표에 추가하세요.",
+   "count": 4
+  },
+  {
+   "rule": "SIZING_INPUT_MISSING",
+   "severity": "high",
+   "title": "용량산정 입력 누락",
+   "recommendation": "ESM에 CPU 모델·코어·메모리를 채우거나 별도 사양 시트를 제공하세요.",
+   "count": 3
+  },
+  {
+   "rule": "OWNER_MISSING",
+   "severity": "medium",
+   "title": "담당자 누락",
+   "recommendation": "이관 일정 협의를 위해 ESM 담당자를 지정하세요.",
+   "count": 7
+  },
+  {
+   "rule": "ZONE_MISSING",
+   "severity": "medium",
+   "title": "망구분 누락",
+   "recommendation": "구성도 배치와 보안 설계를 위해 망구분을 지정하세요.",
+   "count": 7
+  },
+  {
+   "rule": "NAMING_VIOLATION",
+   "severity": "low",
+   "title": "명명 규칙 위반",
+   "recommendation": "명명 규칙에 맞는 hostname으로 정정하세요.",
+   "count": 7
+  }
+ ],
+ "zones": [
+  [
+   "(미지정)",
+   7
+  ]
+ ],
+ "envs": [
+  [
+   "(명명 규칙 외)",
+   4
+  ],
+  [
+   "운영",
+   3
+  ]
+ ],
+ "sites": [
+  [
+   "시험센터",
+   7
+  ]
+ ],
+ "last_diff": {
+  "before": 5,
+  "after": 6,
+  "added": 0,
+  "removed": 0,
+  "changed": 1,
+  "unchanged": 9,
+  "changed_fields": {
+   "memory_gb": 1
+  }
+ },
+ "runs": [
+  {
+   "id": 6,
+   "source_name": "servers.xlsx",
+   "source_id": "servers",
+   "mode": "merge",
+   "source_sha256": "<sha256>",
+   "sheet": "Sheet",
+   "header_row": 1,
+   "started_at": "2026-10-22T00:00:00+00:00",
+   "finished_at": "2026-10-22T00:00:00+00:00",
+   "row_count": 3,
+   "asset_count": 7,
+   "error_count": 0,
+   "warning_count": 0
+  },
+  {
+   "id": 5,
+   "source_name": "db.xlsx",
+   "source_id": "db",
+   "mode": "merge",
+   "source_sha256": "<sha256>",
+   "sheet": "Sheet",
+   "header_row": 1,
+   "started_at": "2026-10-22T00:00:00+00:00",
+   "finished_at": "2026-10-22T00:00:00+00:00",
+   "row_count": 1,
+   "asset_count": 7,
+   "error_count": 0,
+   "warning_count": 1
+  },
+  {
+   "id": 4,
+   "source_name": "web.xlsx",
+   "source_id": "web",
+   "mode": "merge",
+   "source_sha256": "<sha256>",
+   "sheet": "Sheet",
+   "header_row": 1,
+   "started_at": "2026-10-22T00:00:00+00:00",
+   "finished_at": "2026-10-22T00:00:00+00:00",
+   "row_count": 2,
+   "asset_count": 7,
+   "error_count": 0,
+   "warning_count": 2
+  },
+  {
+   "id": 3,
+   "source_name": "security.xlsx",
+   "source_id": "security",
+   "mode": "merge",
+   "source_sha256": "<sha256>",
+   "sheet": "Sheet",
+   "header_row": 1,
+   "started_at": "2026-10-22T00:00:00+00:00",
+   "finished_at": "2026-10-22T00:00:00+00:00",
+   "row_count": 2,
+   "asset_count": 7,
+   "error_count": 0,
+   "warning_count": 0
+  },
+  {
+   "id": 2,
+   "source_name": "equipment.xlsx",
+   "source_id": "equipment",
+   "mode": "merge",
+   "source_sha256": "<sha256>",
+   "sheet": "Sheet",
+   "header_row": 1,
+   "started_at": "2026-10-22T00:00:00+00:00",
+   "finished_at": "2026-10-22T00:00:00+00:00",
+   "row_count": 2,
+   "asset_count": 5,
+   "error_count": 0,
+   "warning_count": 0
+  }
+ ]
+}

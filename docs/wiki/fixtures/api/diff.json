@@ -1,0 +1,39 @@
+{
+ "before": 5,
+ "after": 6,
+ "added": [],
+ "removed": [],
+ "changed": [
+  {
+   "key": "합성조직|시험센터|erp-db-01",
+   "hostname": "erp-db-01",
+   "fields": {
+    "memory_gb": {
+     "before": 256.0,
+     "after": 512.0
+    }
+   }
+  }
+ ],
+ "counts": {
+  "added": 0,
+  "removed": 0,
+  "changed": 1,
+  "unchanged": 6
+ },
+ "changed_fields": {
+  "memory_gb": 1
+ },
+ "components": {
+  "added": [],
+  "removed": [],
+  "changed": [],
+  "counts": {
+   "added": 0,
+   "removed": 0,
+   "changed": 0,
+   "unchanged": 3
+  },
+  "changed_fields": {}
+ }
+}

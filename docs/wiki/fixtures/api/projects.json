@@ -1,0 +1,24 @@
+{
+ "total": 1,
+ "page": 1,
+ "page_size": 20,
+ "items": [
+  {
+   "code": "biz-bd93128d732c",
+   "name": "합성 ERP",
+   "assets": 3,
+   "components": 3,
+   "envs": [
+    "운영"
+   ],
+   "zones": [
+    "-"
+   ],
+   "roles": {
+    "-": 3
+   },
+   "readiness": 0,
+   "issues": 9
+  }
+ ]
+}

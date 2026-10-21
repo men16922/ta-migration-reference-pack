@@ -29,6 +29,7 @@ WEB/WAS/DB 인스턴스는 서버와 분리하며, 방화벽·망 구획·통신
 
 ## 문서
 
+- **[회사 프로젝트 메뉴 포팅 위키](docs/wiki/README.md)** — 자동 증분 동기화 사양, 구성도 엔진, 단계별 포팅 플레이북, 인수 테스트 (기계 판독 색인: `llms.txt`)
 - [실행·등록·백업·Agent 연결](docs/enterprise-operations.md)
 - [제품 범위와 구현 계획](docs/plans/2026-10-21-enterprise-idc-tool.md)
 - [현재 상태](docs/STATUS.md) · [다음 작업](docs/NEXT_PLAN.md) · [검증 기록](docs/PROGRESS_LOG.md)

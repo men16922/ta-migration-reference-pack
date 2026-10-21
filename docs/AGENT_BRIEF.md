@@ -23,7 +23,7 @@ User scope: useful internal enterprise tool, not a demo. Knowledge is maintained
 Authority: `docs/NEXT_PLAN.md` and `docs/plans/2026-10-21-enterprise-idc-tool.md`.
 Earlier P8 assistant-first and migration-simulator plans are superseded for the product.
 Real ESM acceptance, actual company Agent integration and relationship sources remain external dependencies.
-Working branch `feat/diagram-drawio-icons`, HEAD `f28c568`: implementation and new modules/docs remain uncommitted. Preserve untracked files as part of this work bundle.
+Work bundle committed and pushed as `0b4e617` on `feat/diagram-drawio-icons`. Porting wiki for the company-repo menu: `docs/wiki/README.md` (entry `docs/wiki/00-start-here.md`, index `llms.txt`).
 At checkpoint, :8770 uses `kit/local/atlas.db` (run #2/3 assets); :8771 uses `/tmp/ta-enterprise-qa-v2/inventory.db` (14 synthetic assets/9 instances, six sources, drawing revisions 1–4). Recheck processes before restarting; temporary QA storage is not a durable backup.
 
 ## Commands

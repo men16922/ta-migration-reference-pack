@@ -1,0 +1,369 @@
+{
+  "version": 1,
+  "spec": "docs/wiki/12-auto-incremental-sync.md",
+  "description": "자동 증분 동기화(TO-BE) 인수 시나리오. 모든 데이터는 합성이다. 각 시나리오는 빈 DB에서 시작해 given 업로드를 순서대로 적용한 뒤 when 업로드의 결과를 then과 비교한다. 결정 항목(D-xx)은 기본값 기준이다.",
+  "conventions": {
+    "sheet_ref": "sheets[].use는 아래 sheets 객체의 이름이다. rows[0]이 헤더 행이고 데이터는 2행부터다(row_number는 엑셀 행 번호).",
+    "xlsx": "테스트에서 각 파일을 실제 .xlsx로 만들어 업로드한다(셀은 모두 문자열로 써도 된다). same_bytes_as가 있으면 그 파일과 바이트가 같은 파일을 다시 올린다.",
+    "last_modified": "파일 수정 시각(ISO-8601). 없으면 업로드 시각으로 본다.",
+    "totals": "then.totals에 적힌 항목만 비교한다. 적히지 않은 항목은 검사하지 않는다.",
+    "dataset_version_delta": "when 배치 전후 dataset_version 차이.",
+    "assets": "then.assets의 키는 자산 식별 키, 값은 기대 필드(적힌 것만 비교). active=false는 소프트 삭제 상태.",
+    "issues": "then.issues는 최소 포함 목록(code와 row_number가 일치하는 이슈가 있어야 한다)."
+  },
+  "sheets": {
+    "servers_v1": {
+      "rows": [
+        ["그룹사명(BOX)", "설치지역", "호스트명", "대표IP", "OS종류", "CPU Core(ea)", "Memory(GB)", "ITSM 업무(대)", "ITSM 업무(중)", "ITSM 업무(소)", "용도"],
+        ["합성조직", "시험센터", "erp-web-01", "192.0.2.11", "LINUX", "8", "32", "지원", "업무", "합성 ERP", "운영"],
+        ["합성조직", "시험센터", "erp-web-02", "192.0.2.12", "LINUX", "8", "32", "지원", "업무", "합성 ERP", "운영"],
+        ["합성조직", "시험센터", "erp-db-01", "192.0.2.21", "AIX", "32", "256", "지원", "업무", "합성 ERP", "운영"]
+      ]
+    },
+    "servers_v2_db_memory": {
+      "rows": [
+        ["그룹사명(BOX)", "설치지역", "호스트명", "대표IP", "OS종류", "CPU Core(ea)", "Memory(GB)", "ITSM 업무(대)", "ITSM 업무(중)", "ITSM 업무(소)", "용도"],
+        ["합성조직", "시험센터", "erp-web-01", "192.0.2.11", "LINUX", "8", "32", "지원", "업무", "합성 ERP", "운영"],
+        ["합성조직", "시험센터", "erp-web-02", "192.0.2.12", "LINUX", "8", "32", "지원", "업무", "합성 ERP", "운영"],
+        ["합성조직", "시험센터", "erp-db-01", "192.0.2.21", "AIX", "32", "512", "지원", "업무", "합성 ERP", "운영"]
+      ]
+    },
+    "servers_partial_db_only": {
+      "rows": [
+        ["그룹사명(BOX)", "설치지역", "호스트명", "대표IP", "OS종류", "CPU Core(ea)", "Memory(GB)", "ITSM 업무(대)", "ITSM 업무(중)", "ITSM 업무(소)", "용도"],
+        ["합성조직", "시험센터", "erp-db-01", "192.0.2.21", "AIX", "32", "512", "지원", "업무", "합성 ERP", "운영"]
+      ]
+    },
+    "servers_no_memory_column": {
+      "rows": [
+        ["그룹사명(BOX)", "설치지역", "호스트명", "대표IP", "OS종류", "CPU Core(ea)"],
+        ["합성조직", "시험센터", "erp-db-01", "192.0.2.21", "AIX", "48"]
+      ]
+    },
+    "servers_blank_memory": {
+      "rows": [
+        ["그룹사명(BOX)", "설치지역", "호스트명", "대표IP", "OS종류", "CPU Core(ea)", "Memory(GB)"],
+        ["합성조직", "시험센터", "erp-web-01", "192.0.2.11", "LINUX", "8", ""]
+      ]
+    },
+    "servers_duplicate_rows": {
+      "rows": [
+        ["그룹사명(BOX)", "설치지역", "호스트명", "대표IP", "OS종류", "CPU Core(ea)", "Memory(GB)"],
+        ["합성조직", "시험센터", "erp-web-01", "192.0.2.11", "LINUX", "8", "32"],
+        ["합성조직", "시험센터", "ERP-WEB-01", "192.0.2.11", "LINUX", "8", "64"]
+      ]
+    },
+    "servers_with_row_error": {
+      "rows": [
+        ["ESM 서버 목록 (합성)"],
+        [],
+        ["그룹사명(BOX)", "설치지역", "호스트명", "대표IP", "OS종류", "CPU Core(ea)", "Memory(GB)"],
+        ["합성조직", "시험센터", "erp-web-01", "192.0.2.11", "LINUX", "8", "32"],
+        ["합성조직", "시험센터", "", "192.0.2.99", "LINUX", "4", "16"]
+      ]
+    },
+    "servers_other_org": {
+      "rows": [
+        ["그룹사명(BOX)", "설치지역", "호스트명", "대표IP", "OS종류", "CPU Core(ea)", "Memory(GB)"],
+        ["타조직", "본센터", "other-01", "198.51.100.50", "LINUX", "4", "16"]
+      ]
+    },
+    "security_conflict": {
+      "rows": [
+        ["그룹사명", "설치지역", "장비명", "솔루션 유형", "관리IP"],
+        ["합성조직", "시험센터", "erp-db-01", "NAC", "198.51.100.10"],
+        ["합성조직", "시험센터", "fw-01", "방화벽", "198.51.100.9"]
+      ]
+    },
+    "equipment_basic": {
+      "rows": [
+        ["그룹사명", "설치지역", "장비명", "장비범주", "세부분류", "관리IP"],
+        ["합성조직", "시험센터", "core-sw-01", "네트워크", "L3 스위치", "198.51.100.1"],
+        ["합성조직", "시험센터", "nas-01", "스토리지", "NAS", "198.51.100.2"]
+      ]
+    },
+    "was_v1": {
+      "rows": [
+        ["그룹사명", "설치지역", "호스트명", "WAS제품", "WAS제품버전", "PORT", "ITSM 업무(대)", "ITSM 업무(중)", "ITSM 업무(소)"],
+        ["합성조직", "시험센터", "erp-web-01", "Tomcat", "9.0", "8080", "지원", "업무", "합성 ERP"]
+      ]
+    },
+    "was_version_up": {
+      "rows": [
+        ["그룹사명", "설치지역", "호스트명", "WAS제품", "WAS제품버전", "PORT", "ITSM 업무(대)", "ITSM 업무(중)", "ITSM 업무(소)"],
+        ["합성조직", "시험센터", "erp-web-01", "Tomcat", "10.1", "8080", "지원", "업무", "합성 ERP"]
+      ]
+    },
+    "was_port_moved": {
+      "rows": [
+        ["그룹사명", "설치지역", "호스트명", "WAS제품", "WAS제품버전", "PORT", "ITSM 업무(대)", "ITSM 업무(중)", "ITSM 업무(소)"],
+        ["합성조직", "시험센터", "erp-web-01", "Tomcat", "9.0", "8081", "지원", "업무", "합성 ERP"]
+      ]
+    },
+    "memo_unknown": {
+      "rows": [
+        ["항목", "내용"],
+        ["비고", "합성 메모 시트"]
+      ]
+    }
+  },
+  "scenarios": [
+    {
+      "id": "S01",
+      "title": "첫 업로드: 자산 추가, 업무 분류, 버전 증가",
+      "given": [],
+      "when": { "files": [{ "name": "servers-1021.xlsx", "last_modified": "2026-10-21T09:00:00Z", "sheets": [{ "name": "서버", "use": "servers_v1" }] }] },
+      "then": {
+        "batch_status": "applied",
+        "dataset_version_delta": 1,
+        "sheets": [{ "name": "서버", "status": "applied", "source_id": "servers" }],
+        "totals": { "added": 3, "changed": 0, "unchanged": 0, "conflicts": 0, "errors": 0 },
+        "assets": {
+          "합성조직|시험센터|erp-db-01": { "source_id": "servers", "memory_gb": 256, "cpu_cores": 32, "project_code": "biz-bd93128d732c", "env": "p", "classify_source": "column", "category": "서버" }
+        },
+        "projects": { "biz-bd93128d732c": "합성 ERP" }
+      }
+    },
+    {
+      "id": "S02",
+      "title": "같은 바이트 파일 재업로드: 파싱 생략, 변경 0, 버전 유지",
+      "given": [{ "files": [{ "name": "servers-1021.xlsx", "last_modified": "2026-10-21T09:00:00Z", "sheets": [{ "name": "서버", "use": "servers_v1" }] }] }],
+      "when": { "files": [{ "name": "servers-1021-copy.xlsx", "same_bytes_as": "given[0].files[0]" }] },
+      "then": {
+        "batch_status": "no_change",
+        "dataset_version_delta": 0,
+        "files": [{ "name": "servers-1021-copy.xlsx", "status": "skipped_same_file" }],
+        "totals": { "added": 0, "changed": 0 }
+      }
+    },
+    {
+      "id": "S03",
+      "title": "내용이 같은 다른 파일(다시 저장): 모두 unchanged, 버전 유지",
+      "given": [{ "files": [{ "name": "a.xlsx", "last_modified": "2026-10-21T09:00:00Z", "sheets": [{ "name": "서버", "use": "servers_v1" }] }] }],
+      "when": { "files": [{ "name": "b.xlsx", "last_modified": "2026-10-21T10:00:00Z", "sheets": [{ "name": "Sheet1", "use": "servers_v1" }] }] },
+      "then": { "batch_status": "no_change", "dataset_version_delta": 0, "totals": { "added": 0, "changed": 0, "unchanged": 3 } }
+    },
+    {
+      "id": "S04",
+      "title": "값 변경: 해당 필드만 덮어쓰고 변경 로그 1건",
+      "given": [{ "files": [{ "name": "a.xlsx", "last_modified": "2026-10-21T09:00:00Z", "sheets": [{ "name": "서버", "use": "servers_v1" }] }] }],
+      "when": { "files": [{ "name": "b.xlsx", "last_modified": "2026-10-22T09:00:00Z", "sheets": [{ "name": "서버", "use": "servers_v2_db_memory" }] }] },
+      "then": {
+        "batch_status": "applied",
+        "dataset_version_delta": 1,
+        "totals": { "added": 0, "changed": 1, "unchanged": 2 },
+        "changes": [{ "record_type": "asset", "key": "합성조직|시험센터|erp-db-01", "op": "update", "field": "memory_gb", "before": "256", "after": "512" }],
+        "assets": { "합성조직|시험센터|erp-db-01": { "memory_gb": 512 } }
+      }
+    },
+    {
+      "id": "S05",
+      "title": "부분 파일: 파일에 없는 자산은 유지(증분)",
+      "given": [{ "files": [{ "name": "a.xlsx", "last_modified": "2026-10-21T09:00:00Z", "sheets": [{ "name": "서버", "use": "servers_v1" }] }] }],
+      "when": { "files": [{ "name": "b.xlsx", "last_modified": "2026-10-22T09:00:00Z", "sheets": [{ "name": "서버", "use": "servers_partial_db_only" }] }] },
+      "then": {
+        "batch_status": "applied",
+        "totals": { "added": 0, "changed": 1, "removed": 0 },
+        "assets": {
+          "합성조직|시험센터|erp-web-01": { "active": true, "memory_gb": 32 },
+          "합성조직|시험센터|erp-web-02": { "active": true },
+          "합성조직|시험센터|erp-db-01": { "memory_gb": 512 }
+        },
+        "active_asset_count": 3
+      }
+    },
+    {
+      "id": "S06",
+      "title": "파일에 없는 열은 기존 값 유지 (D-03)",
+      "given": [{ "files": [{ "name": "a.xlsx", "last_modified": "2026-10-21T09:00:00Z", "sheets": [{ "name": "서버", "use": "servers_v1" }] }] }],
+      "when": { "files": [{ "name": "b.xlsx", "last_modified": "2026-10-22T09:00:00Z", "sheets": [{ "name": "서버", "use": "servers_no_memory_column" }] }] },
+      "then": {
+        "batch_status": "applied",
+        "totals": { "changed": 1 },
+        "assets": { "합성조직|시험센터|erp-db-01": { "cpu_cores": 48, "memory_gb": 256, "business_l3": "합성 ERP", "project_code": "biz-bd93128d732c" } }
+      }
+    },
+    {
+      "id": "S07",
+      "title": "파일에 있는 열의 빈 셀은 null로 덮어씀 (D-02)",
+      "given": [{ "files": [{ "name": "a.xlsx", "last_modified": "2026-10-21T09:00:00Z", "sheets": [{ "name": "서버", "use": "servers_v1" }] }] }],
+      "when": { "files": [{ "name": "b.xlsx", "last_modified": "2026-10-22T09:00:00Z", "sheets": [{ "name": "서버", "use": "servers_blank_memory" }] }] },
+      "then": {
+        "totals": { "changed": 1 },
+        "changes": [{ "key": "합성조직|시험센터|erp-web-01", "op": "update", "field": "memory_gb", "before": "32", "after": null }],
+        "assets": { "합성조직|시험센터|erp-web-01": { "memory_gb": null, "cpu_cores": 8 } }
+      }
+    },
+    {
+      "id": "S08",
+      "title": "같은 시트 안 중복 키: 마지막 행 채택 + 경고 (D-04, 키는 대소문자 무시)",
+      "given": [],
+      "when": { "files": [{ "name": "dup.xlsx", "last_modified": "2026-10-22T09:00:00Z", "sheets": [{ "name": "서버", "use": "servers_duplicate_rows" }] }] },
+      "then": {
+        "batch_status": "applied",
+        "totals": { "added": 1 },
+        "issues": [{ "code": "DUPLICATE_IN_FILE", "severity": "warning", "row_number": 3 }],
+        "assets": { "합성조직|시험센터|erp-web-01": { "hostname": "ERP-WEB-01", "memory_gb": 64 } }
+      }
+    },
+    {
+      "id": "S09",
+      "title": "한 배치의 여러 파일: 수정 시각이 오래된 파일부터 적용, 최신 값이 남음 (D-07)",
+      "given": [],
+      "when": {
+        "files": [
+          { "name": "new.xlsx", "last_modified": "2026-10-22T09:00:00Z", "sheets": [{ "name": "서버", "use": "servers_v2_db_memory" }] },
+          { "name": "old.xlsx", "last_modified": "2026-10-20T09:00:00Z", "sheets": [{ "name": "서버", "use": "servers_v1" }] }
+        ]
+      },
+      "then": {
+        "batch_status": "applied",
+        "dataset_version_delta": 1,
+        "apply_order": ["old.xlsx", "new.xlsx"],
+        "totals": { "added": 3, "changed": 1, "unchanged": 2 },
+        "assets": { "합성조직|시험센터|erp-db-01": { "memory_gb": 512 } }
+      }
+    },
+    {
+      "id": "S10",
+      "title": "나중에 올린 더 오래된 파일: 해당 레코드 건너뜀 (D-07)",
+      "given": [{ "files": [{ "name": "new.xlsx", "last_modified": "2026-10-22T09:00:00Z", "sheets": [{ "name": "서버", "use": "servers_v2_db_memory" }] }] }],
+      "when": { "files": [{ "name": "old.xlsx", "last_modified": "2026-10-20T09:00:00Z", "sheets": [{ "name": "서버", "use": "servers_v1" }] }] },
+      "then": {
+        "batch_status": "no_change",
+        "dataset_version_delta": 0,
+        "totals": { "changed": 0, "skipped": 3 },
+        "issues": [{ "code": "STALE_FILE", "row_number": 4 }],
+        "assets": { "합성조직|시험센터|erp-db-01": { "memory_gb": 512 } }
+      }
+    },
+    {
+      "id": "S11",
+      "title": "다른 원천과 키 충돌: 그 행만 건너뛰고 나머지 적용 (D-05)",
+      "given": [{ "files": [{ "name": "servers.xlsx", "last_modified": "2026-10-21T09:00:00Z", "sheets": [{ "name": "서버", "use": "servers_v1" }] }] }],
+      "when": { "files": [{ "name": "security.xlsx", "last_modified": "2026-10-22T09:00:00Z", "sheets": [{ "name": "보안장비", "use": "security_conflict" }] }] },
+      "then": {
+        "batch_status": "applied",
+        "sheets": [{ "name": "보안장비", "status": "applied", "source_id": "security" }],
+        "totals": { "added": 1, "conflicts": 1 },
+        "issues": [{ "code": "CROSS_SOURCE_CONFLICT", "row_number": 2 }],
+        "assets": {
+          "합성조직|시험센터|erp-db-01": { "source_id": "servers", "category": "서버" },
+          "합성조직|시험센터|fw-01": { "source_id": "security", "category": "보안장비", "category_detail": "방화벽" }
+        }
+      }
+    },
+    {
+      "id": "S12",
+      "title": "한 파일의 여러 시트 자동 판별: 서버 + WAS, 인스턴스는 서버에 연결",
+      "given": [],
+      "when": { "files": [{ "name": "esm-export.xlsx", "last_modified": "2026-10-22T09:00:00Z", "sheets": [{ "name": "서버", "use": "servers_v1" }, { "name": "WAS", "use": "was_v1" }, { "name": "장비", "use": "equipment_basic" }] }] },
+      "then": {
+        "batch_status": "applied",
+        "sheets": [
+          { "name": "서버", "status": "applied", "source_id": "servers" },
+          { "name": "WAS", "status": "applied", "source_id": "was", "detect_reason": "header:WAS제품" },
+          { "name": "장비", "status": "applied", "source_id": "equipment" }
+        ],
+        "active_asset_count": 5,
+        "components": {
+          "component-54c0a5b87449beefb3217903": { "component_kind": "was", "product": "Tomcat", "product_version": "9.0", "port": "8080", "asset_key": "합성조직|시험센터|erp-web-01", "match_status": "matched", "project_code": "biz-bd93128d732c" }
+        }
+      }
+    },
+    {
+      "id": "S13",
+      "title": "인스턴스 버전 변경: 같은 키 갱신",
+      "given": [{ "files": [{ "name": "a.xlsx", "last_modified": "2026-10-21T09:00:00Z", "sheets": [{ "name": "서버", "use": "servers_v1" }, { "name": "WAS", "use": "was_v1" }] }] }],
+      "when": { "files": [{ "name": "b.xlsx", "last_modified": "2026-10-22T09:00:00Z", "sheets": [{ "name": "WAS", "use": "was_version_up" }] }] },
+      "then": {
+        "totals": { "added": 0, "changed": 1 },
+        "changes": [{ "record_type": "component", "key": "component-54c0a5b87449beefb3217903", "op": "update", "field": "product_version", "before": "9.0", "after": "10.1" }]
+      }
+    },
+    {
+      "id": "S14",
+      "title": "인스턴스 포트 변경: 새 인스턴스 추가, 이전 인스턴스 유지(증분)",
+      "given": [{ "files": [{ "name": "a.xlsx", "last_modified": "2026-10-21T09:00:00Z", "sheets": [{ "name": "서버", "use": "servers_v1" }, { "name": "WAS", "use": "was_v1" }] }] }],
+      "when": { "files": [{ "name": "b.xlsx", "last_modified": "2026-10-22T09:00:00Z", "sheets": [{ "name": "WAS", "use": "was_port_moved" }] }] },
+      "then": {
+        "totals": { "added": 1, "changed": 0 },
+        "components": {
+          "component-54c0a5b87449beefb3217903": { "active": true, "port": "8080" },
+          "component-e604887f8462e6e02fece47c": { "active": true, "port": "8081" }
+        }
+      }
+    },
+    {
+      "id": "S15",
+      "title": "판별할 수 없는 시트: needs_mapping, 나머지 시트는 적용, 배치는 partial",
+      "given": [],
+      "when": { "files": [{ "name": "mixed.xlsx", "last_modified": "2026-10-22T09:00:00Z", "sheets": [{ "name": "서버", "use": "servers_v1" }, { "name": "메모", "use": "memo_unknown" }] }] },
+      "then": {
+        "batch_status": "partial",
+        "sheets": [
+          { "name": "서버", "status": "applied", "source_id": "servers" },
+          { "name": "메모", "status": "needs_mapping", "source_id": null }
+        ],
+        "totals": { "added": 3 }
+      }
+    },
+    {
+      "id": "S16",
+      "title": "행 오류는 그 행만 제외 (제목 행이 있는 시트의 헤더 탐지 포함)",
+      "given": [],
+      "when": { "files": [{ "name": "err.xlsx", "last_modified": "2026-10-22T09:00:00Z", "sheets": [{ "name": "서버", "use": "servers_with_row_error" }] }] },
+      "then": {
+        "batch_status": "applied",
+        "sheets": [{ "name": "서버", "status": "applied", "source_id": "servers", "header_row": 3 }],
+        "totals": { "added": 1, "errors": 1 },
+        "issues": [{ "code": "MISSING_HOSTNAME", "severity": "error", "row_number": 5 }]
+      }
+    },
+    {
+      "id": "S17",
+      "title": "범위 한정 소프트 삭제 (D-06, 관리자 옵션): 같은 그룹사·센터의 빠진 자산만 비활성",
+      "given": [
+        { "files": [{ "name": "a.xlsx", "last_modified": "2026-10-21T09:00:00Z", "sheets": [{ "name": "서버", "use": "servers_v1" }] }] },
+        { "files": [{ "name": "other.xlsx", "last_modified": "2026-10-21T09:30:00Z", "sheets": [{ "name": "서버", "use": "servers_other_org" }] }] }
+      ],
+      "when": {
+        "files": [{ "name": "full.xlsx", "last_modified": "2026-10-22T09:00:00Z", "sheets": [{ "name": "서버", "use": "servers_partial_db_only" }] }],
+        "options": { "full_snapshot_sources": ["servers"] },
+        "requested_by_role": "idc.admin"
+      },
+      "then": {
+        "batch_status": "applied",
+        "totals": { "changed": 1, "removed": 2 },
+        "assets": {
+          "합성조직|시험센터|erp-web-01": { "active": false },
+          "합성조직|시험센터|erp-web-02": { "active": false },
+          "합성조직|시험센터|erp-db-01": { "active": true, "memory_gb": 512 },
+          "타조직|본센터|other-01": { "active": true }
+        }
+      }
+    },
+    {
+      "id": "S18",
+      "title": "범위 한정 삭제는 관리자만",
+      "given": [{ "files": [{ "name": "a.xlsx", "last_modified": "2026-10-21T09:00:00Z", "sheets": [{ "name": "서버", "use": "servers_v1" }] }] }],
+      "when": {
+        "files": [{ "name": "full.xlsx", "last_modified": "2026-10-22T09:00:00Z", "sheets": [{ "name": "서버", "use": "servers_partial_db_only" }] }],
+        "options": { "full_snapshot_sources": ["servers"] },
+        "requested_by_role": "idc.editor"
+      },
+      "then": { "http_status": 403, "dataset_version_delta": 0 }
+    },
+    {
+      "id": "S19",
+      "title": "같은 client_token 재요청: 이전 결과 반환, 새 배치 없음",
+      "given": [],
+      "when": {
+        "files": [{ "name": "a.xlsx", "last_modified": "2026-10-21T09:00:00Z", "sheets": [{ "name": "서버", "use": "servers_v1" }] }],
+        "client_token": "00000000-0000-4000-8000-000000000001",
+        "repeat": 2
+      },
+      "then": { "batch_count": 1, "same_batch_id": true, "dataset_version_delta": 1 }
+    }
+  ]
+}

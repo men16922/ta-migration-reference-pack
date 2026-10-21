@@ -1,0 +1,52 @@
+# onprem-atlas
+
+> ESM Excel(서버·장비·보안장비·WEB/WAS/DB 목록)을 올려 온프렘 IDC 자산을 최신으로 유지하고, 대시보드와 IDC/업무 시스템 구성도(draw.io)로 보여주는 참조 구현. Python kit(FastAPI/SQLite) + React/Carbon 콘솔. 이 저장소는 회사 프로젝트의 "온프렘 IDC" 메뉴로 포팅하기 위한 사양·위키를 포함한다. 포팅 에이전트는 docs/wiki/00-start-here.md부터 읽는다.
+
+기준 브랜치: feat/diagram-drawio-icons. 모든 예시 데이터는 합성이다. 위키는 한국어다.
+
+## 시작
+
+- [에이전트 지침](docs/wiki/00-start-here.md): 임무, 절대 규칙, 작업 루프, 완료 기준
+- [포팅 플레이북](docs/wiki/40-porting-playbook.md): 단계 P0~P8, 종료 조건, 결정 목록 D-01~D-17
+- [시작 프롬프트](docs/wiki/prompts/gpt-porting-kickoff.md): GPT 세션에 붙여 넣는 첫 메시지
+- [위키 목차](docs/wiki/README.md)
+
+## 사양
+
+- [제품 범위](docs/wiki/01-product-scope.md): 원천 6종, 포함/제외 기능
+- [현재 구조](docs/wiki/02-current-architecture.md): 모듈 지도, 데이터 흐름
+- [데이터 모델](docs/wiki/10-data-model.md): 표준 필드 44개, 식별 키, 목표 DDL
+- [Excel 수집](docs/wiki/11-excel-ingest.md): 셀 규칙, 헤더 탐지, 정규화, 이슈 코드
+- [자동 증분 동기화](docs/wiki/12-auto-incremental-sync.md): 다중 파일, 시트 자동 판별, 필드 단위 덮어쓰기, 변경 로그 (핵심 TO-BE)
+- [WEB/WAS/DB 인스턴스](docs/wiki/13-components-web-was-db.md): 인스턴스 키, 서버 연결
+- [업무 분류](docs/wiki/14-business-classification.md): ITSM 계층 기반 업무 코드, 환경
+- [API 계약](docs/wiki/20-api-contract.md): 현재 API와 메뉴용 목표 API
+- [대시보드](docs/wiki/30-dashboard.md): KPI, 업무별 자산, 센터별 분포, 제안 위젯
+- [구성도 엔진](docs/wiki/31-diagram-engine.md): 상자 트리, 결정적 배치, 레이아웃 JSON, draw.io XML
+- [draw.io 편집기(선택)](docs/wiki/32-diagram-editor-drawio.md): 편집본 이력
+- [화면·메뉴](docs/wiki/33-ui-pages-and-menu.md): 라우팅, 화면별 명세, 디자인 시스템 매핑
+
+## 검증
+
+- [호스트 연동](docs/wiki/41-host-integration.md): 인증·권한·저장·파일·보안
+- [인수 테스트](docs/wiki/42-acceptance-tests.md): KEY/ING/CMP/SYNC/CLS/API/DIA/UI/DASH/SEC/PERF
+- [동기화 시나리오](docs/wiki/fixtures/sync-scenarios.json): S01~S19 데이터 주도 테스트
+- [API 응답 샘플](docs/wiki/fixtures/README.md): 합성 데이터로 만든 실제 응답
+- [한계·함정](docs/wiki/43-known-gaps-and-pitfalls.md): 그대로 옮기면 안 되는 동작
+
+## 참조 코드
+
+- kit/src/onprem_atlas/ingest/: xlsx 읽기, 헤더 매핑, 행 정규화
+- kit/src/onprem_atlas/components.py: WEB/WAS/DB 파싱과 서버 연결
+- kit/src/onprem_atlas/store/__init__.py: 현재 SQLite 저장(실행 스냅샷)
+- kit/src/onprem_atlas/classify/__init__.py: 업무 분류
+- kit/src/onprem_atlas/diagram/: 구성도 엔진
+- kit/src/onprem_atlas/web/: API
+- src/console/: React 화면
+
+## Optional
+
+- [용어집](docs/wiki/90-glossary.md)
+- [운영 가이드(현재 로컬 도구)](docs/enterprise-operations.md)
+- [기능·사용성 평가](docs/evaluation.md)
+- [제품 계획](docs/plans/2026-10-21-enterprise-idc-tool.md)

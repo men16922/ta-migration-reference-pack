@@ -1,0 +1,330 @@
+{
+ "width": 844,
+ "height": 456,
+ "stats": {
+  "view": "idc",
+  "project": null,
+  "name": null,
+  "assets": 7,
+  "servers": 3,
+  "shown": 3,
+  "components": 3,
+  "unmatched_components": 0,
+  "aggregated": true,
+  "sites": [
+   "합성조직 / 시험센터"
+  ],
+  "notation": "onprem-deployment",
+  "sources": [
+   {
+    "id": 2,
+    "source_id": "equipment",
+    "source_name": "equipment.xlsx",
+    "source_sha256": "<sha256>",
+    "finished_at": "2026-10-22T00:00:00+00:00"
+   },
+   {
+    "id": 3,
+    "source_id": "security",
+    "source_name": "security.xlsx",
+    "source_sha256": "<sha256>",
+    "finished_at": "2026-10-22T00:00:00+00:00"
+   },
+   {
+    "id": 4,
+    "source_id": "web",
+    "source_name": "web.xlsx",
+    "source_sha256": "<sha256>",
+    "finished_at": "2026-10-22T00:00:00+00:00"
+   },
+   {
+    "id": 5,
+    "source_id": "db",
+    "source_name": "db.xlsx",
+    "source_sha256": "<sha256>",
+    "finished_at": "2026-10-22T00:00:00+00:00"
+   },
+   {
+    "id": 6,
+    "source_id": "servers",
+    "source_name": "servers.xlsx",
+    "source_sha256": "<sha256>",
+    "finished_at": "2026-10-22T00:00:00+00:00"
+   }
+  ],
+  "run": {
+   "id": 6,
+   "source_name": "servers.xlsx",
+   "finished_at": "2026-10-22T00:00:00+00:00"
+  }
+ },
+ "boxes": [
+  {
+   "id": "c6302b7a656e5",
+   "parent": null,
+   "kind": "title",
+   "label": "IDC 인프라 아키텍처 — 실행 #6",
+   "sublabel": "자산 스냅샷 #6 · 원천 파일 5개 · 2026-10-22",
+   "style": "",
+   "color": null,
+   "x": 0,
+   "y": 0,
+   "w": 600,
+   "h": 52,
+   "icon": null,
+   "meta": {}
+  },
+  {
+   "id": "c7b641de74be5",
+   "parent": null,
+   "kind": "site",
+   "label": "합성조직 / 시험센터",
+   "sublabel": "호스트·장비 7대 · 인스턴스 3개",
+   "style": "",
+   "color": null,
+   "x": 0,
+   "y": 64,
+   "w": 844,
+   "h": 392,
+   "icon": null,
+   "meta": {}
+  },
+  {
+   "id": "cf90b7d79b181",
+   "parent": "c7b641de74be5",
+   "kind": "band",
+   "label": "네트워크 · 보안 · 공통 장비",
+   "sublabel": "",
+   "style": "",
+   "color": null,
+   "x": 14,
+   "y": 110,
+   "w": 580,
+   "h": 160,
+   "icon": null,
+   "meta": {}
+  },
+  {
+   "id": "c417a419bdef1",
+   "parent": "cf90b7d79b181",
+   "kind": "agg",
+   "label": "방화벽 × 1",
+   "sublabel": "-",
+   "style": "net:fw",
+   "color": "#262626",
+   "x": 28,
+   "y": 140,
+   "w": 176,
+   "h": 52,
+   "icon": "mxgraph.networks.firewall",
+   "meta": {
+    "count": 1,
+    "cpu_cores": 0,
+    "memory_gb": 0,
+    "hosts": [
+     "fw-01"
+    ]
+   }
+  },
+  {
+   "id": "cf37319a10344",
+   "parent": "cf90b7d79b181",
+   "kind": "agg",
+   "label": "L3/L2 스위치 × 1",
+   "sublabel": "-",
+   "style": "net:sw",
+   "color": "#262626",
+   "x": 216,
+   "y": 140,
+   "w": 176,
+   "h": 52,
+   "icon": "mxgraph.cisco.switches.layer_3_switch",
+   "meta": {
+    "count": 1,
+    "cpu_cores": 0,
+    "memory_gb": 0,
+    "hosts": [
+     "core-sw-01"
+    ]
+   }
+  },
+  {
+   "id": "c51ce6cc11e5d",
+   "parent": "cf90b7d79b181",
+   "kind": "agg",
+   "label": "NAC × 1",
+   "sublabel": "-",
+   "style": "net:security",
+   "color": "#262626",
+   "x": 404,
+   "y": 140,
+   "w": 176,
+   "h": 52,
+   "icon": "mxgraph.cisco.security.lock",
+   "meta": {
+    "count": 1,
+    "cpu_cores": 0,
+    "memory_gb": 0,
+    "hosts": [
+     "nac-01"
+    ]
+   }
+  },
+  {
+   "id": "c4506f2577669",
+   "parent": "cf90b7d79b181",
+   "kind": "agg",
+   "label": "스토리지 × 1",
+   "sublabel": "-",
+   "style": "net:storage",
+   "color": "#262626",
+   "x": 28,
+   "y": 204,
+   "w": 176,
+   "h": 52,
+   "icon": "mxgraph.cisco.storage.fibre_channel_disk_subsystem",
+   "meta": {
+    "count": 1,
+    "cpu_cores": 0,
+    "memory_gb": 0,
+    "hosts": [
+     "nas-01"
+    ]
+   }
+  },
+  {
+   "id": "c60f36c4579c7",
+   "parent": "c7b641de74be5",
+   "kind": "tier",
+   "label": "WEB · 프레젠테이션",
+   "sublabel": "애플리케이션 계층",
+   "style": "role:web",
+   "color": "#262626",
+   "x": 14,
+   "y": 282,
+   "w": 264,
+   "h": 160,
+   "icon": null,
+   "meta": {}
+  },
+  {
+   "id": "c80eb342781fc",
+   "parent": "c60f36c4579c7",
+   "kind": "agg",
+   "label": "Apache × 2",
+   "sublabel": "합성 ERP",
+   "style": "role:web",
+   "color": "#262626",
+   "x": 28,
+   "y": 328,
+   "w": 236,
+   "h": 100,
+   "icon": "mxgraph.cisco.computers_and_peripherals.web_browser",
+   "meta": {
+    "count": 2,
+    "cpu_cores": 0,
+    "memory_gb": 0,
+    "hosts": [
+     "erp-web-01",
+     "erp-web-02"
+    ],
+    "record_type": "component",
+    "instances": 2,
+    "match_status": "서버 연결 2/2"
+   }
+  },
+  {
+   "id": "cb4e658260d6e",
+   "parent": "c7b641de74be5",
+   "kind": "tier",
+   "label": "WAS · 애플리케이션",
+   "sublabel": "등록 정보 없음",
+   "style": "role:was",
+   "color": "#262626",
+   "x": 290,
+   "y": 282,
+   "w": 264,
+   "h": 160,
+   "icon": null,
+   "meta": {}
+  },
+  {
+   "id": "cc1090b1ec384",
+   "parent": "c7b641de74be5",
+   "kind": "tier",
+   "label": "DB · 데이터",
+   "sublabel": "애플리케이션 계층",
+   "style": "role:db",
+   "color": "#262626",
+   "x": 566,
+   "y": 282,
+   "w": 264,
+   "h": 160,
+   "icon": null,
+   "meta": {}
+  },
+  {
+   "id": "ccb07c9fef574",
+   "parent": "cc1090b1ec384",
+   "kind": "agg",
+   "label": "Oracle × 1",
+   "sublabel": "합성 ERP",
+   "style": "role:db",
+   "color": "#262626",
+   "x": 580,
+   "y": 328,
+   "w": 236,
+   "h": 100,
+   "icon": "cylinder3",
+   "meta": {
+    "count": 1,
+    "cpu_cores": 0,
+    "memory_gb": 0,
+    "hosts": [
+     "erp-db-01"
+    ],
+    "record_type": "component",
+    "instances": 1,
+    "match_status": "서버 연결 1/1"
+   }
+  }
+ ],
+ "edges": [],
+ "legend": [
+  {
+   "style": "role:web",
+   "label": "WEB",
+   "color": "#262626"
+  },
+  {
+   "style": "role:db",
+   "label": "DB",
+   "color": "#262626"
+  },
+  {
+   "style": "net:fw",
+   "label": "방화벽",
+   "color": "#262626"
+  },
+  {
+   "style": "net:security",
+   "label": "보안장비",
+   "color": "#262626"
+  },
+  {
+   "style": "net:storage",
+   "label": "스토리지",
+   "color": "#262626"
+  },
+  {
+   "style": "net:sw",
+   "label": "L3/L2 스위치",
+   "color": "#262626"
+  }
+ ],
+ "notes": [
+  "WEB·WAS·DB는 애플리케이션 계층이며 VLAN·보안존을 뜻하지 않습니다. 서버 대수와 인스턴스 수는 별도로 집계합니다.",
+  "실선: ESM 기재 이중화 관계 (동작 상태·통신 경로 미확인). IP만으로 서브넷을 추정하지 않습니다.",
+  "공통 서비스·IDC 장비는 센터 전체 기준 참조입니다. 방화벽·망 구획·통신선은 직접 편집하여 별도 저장할 수 있습니다."
+ ]
+}

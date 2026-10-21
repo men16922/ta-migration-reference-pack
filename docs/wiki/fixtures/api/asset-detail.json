@@ -1,0 +1,173 @@
+{
+ "asset": {
+  "run_id": 6,
+  "key": "합성조직|시험센터|erp-db-01",
+  "source_id": "servers",
+  "origin_run_id": 6,
+  "row_number": 4,
+  "hostname": "erp-db-01",
+  "ip": "192.0.2.21",
+  "asset_tag": null,
+  "serial": null,
+  "category": "서버",
+  "manufacturer": null,
+  "model": null,
+  "os": "AIX",
+  "cpu_model": null,
+  "cpu_sockets": null,
+  "cpu_cores": 32,
+  "memory_gb": 512.0,
+  "site": "시험센터",
+  "rack": null,
+  "zone": null,
+  "system_name": null,
+  "owner": null,
+  "status": null,
+  "organization": "합성조직",
+  "os_organization": null,
+  "management_ip": null,
+  "service_ip": null,
+  "category_detail": null,
+  "os_family": null,
+  "os_version": null,
+  "environment": "운영",
+  "business_l1": "지원",
+  "business_l2": "업무",
+  "business_l3": "합성 ERP",
+  "description": null,
+  "rack_unit": null,
+  "ha_peer": null,
+  "eos_date": null,
+  "monitoring_proxy": null,
+  "project": "biz-bd93128d732c",
+  "env": "p",
+  "role": null,
+  "site_code": null,
+  "classify_source": "column",
+  "rule_id": null,
+  "shared": 0,
+  "naming_ok": 0,
+  "conflict": null,
+  "project_name": "합성 ERP"
+ },
+ "source": {
+  "id": 6,
+  "source_name": "servers.xlsx",
+  "source_id": "servers",
+  "source_sha256": "<sha256>",
+  "sheet": "Sheet",
+  "finished_at": "2026-10-22T00:00:00+00:00"
+ },
+ "row_number": 4,
+ "raw": [
+  {
+   "column": "그룹사명(BOX)",
+   "value": "합성조직"
+  },
+  {
+   "column": "설치지역",
+   "value": "시험센터"
+  },
+  {
+   "column": "호스트명",
+   "value": "erp-db-01"
+  },
+  {
+   "column": "대표IP",
+   "value": "192.0.2.21"
+  },
+  {
+   "column": "OS종류",
+   "value": "AIX"
+  },
+  {
+   "column": "CPU Core(ea)",
+   "value": "32"
+  },
+  {
+   "column": "Memory(GB)",
+   "value": "512"
+  },
+  {
+   "column": "ITSM 업무(대)",
+   "value": "지원"
+  },
+  {
+   "column": "ITSM 업무(중)",
+   "value": "업무"
+  },
+  {
+   "column": "ITSM 업무(소)",
+   "value": "합성 ERP"
+  },
+  {
+   "column": "용도",
+   "value": "운영"
+  },
+  {
+   "column": "이중화서버",
+   "value": ""
+  }
+ ],
+ "issues": [],
+ "components": [
+  {
+   "hostname": "erp-db-01",
+   "ip": null,
+   "asset_tag": null,
+   "serial": null,
+   "category": null,
+   "manufacturer": null,
+   "model": null,
+   "os": null,
+   "cpu_model": null,
+   "cpu_sockets": null,
+   "cpu_cores": null,
+   "memory_gb": null,
+   "site": "시험센터",
+   "rack": null,
+   "zone": null,
+   "system_name": null,
+   "owner": null,
+   "status": null,
+   "organization": "합성조직",
+   "os_organization": null,
+   "management_ip": null,
+   "service_ip": null,
+   "category_detail": null,
+   "os_family": null,
+   "os_version": null,
+   "environment": "p",
+   "business_l1": "지원",
+   "business_l2": "업무",
+   "business_l3": "합성 ERP",
+   "description": null,
+   "rack_unit": null,
+   "ha_peer": null,
+   "eos_date": null,
+   "monitoring_proxy": null,
+   "product": "Oracle",
+   "product_version": "19c",
+   "version_detail": null,
+   "port": "1521",
+   "url": null,
+   "sid": "ERPDB",
+   "ha_mode": "RAC",
+   "rto": null,
+   "monitoring": null,
+   "agent_status": null,
+   "component_kind": "db",
+   "key": "component-acef2317097fe93cda26c12c",
+   "run_id": 6,
+   "source_id": "db",
+   "origin_run_id": 5,
+   "row_number": 2,
+   "asset_key": "합성조직|시험센터|erp-db-01",
+   "match_status": "matched",
+   "project": "biz-bd93128d732c",
+   "project_name": "합성 ERP",
+   "classify_source": "column",
+   "citation": "component:component-acef2317097fe93cda26c12c@run5:row2"
+  }
+ ]
+}
