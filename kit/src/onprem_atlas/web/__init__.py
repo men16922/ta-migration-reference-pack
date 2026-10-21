@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from collections import Counter
 from collections.abc import Generator
+import json
 from pathlib import Path
 from typing import Any
 
@@ -30,6 +31,11 @@ def create_router(db_path: str | Path, classify_profile: ClassifyProfile | None 
     router = APIRouter(prefix="/api")
     profile = classify_profile or ClassifyProfile()
 
+    @router.get("/workspace")
+    def workspace() -> dict[str, bool]:
+        with AtlasStore(db_path, check_same_thread=False) as store:
+            return {"has_assets": bool(store.count_assets() or store.list_components()) if store.latest_run_id() else False}
+
     def get_store() -> Generator[AtlasStore]:
         store = AtlasStore(db_path, check_same_thread=False)
         try:
@@ -45,12 +51,16 @@ def create_router(db_path: str | Path, classify_profile: ClassifyProfile | None 
     def summary(store: AtlasStore = Depends(get_store)) -> dict[str, Any]:  # noqa: B008
         run = store.run(store.latest_run_id() or 0) or {}
         assets = store.classified_assets()
+        components = store.components()
         review = review_run(store)
         servers = [a for a in assets if is_server(a)]
         projects = {a["project"] for a in assets if a.get("project") and not a.get("shared")}
+        projects.update(c['project'] for c in components if c.get('project'))
         try:
             d = diff_runs(store)
             last_diff = {"before": d["before"], "after": d["after"], **d["counts"], "changed_fields": d["changed_fields"]}
+            for key in ('added', 'removed', 'changed', 'unchanged'):
+                last_diff[key] += d['components']['counts'][key]
         except ValueError:
             last_diff = None
         return {
@@ -63,6 +73,7 @@ def create_router(db_path: str | Path, classify_profile: ClassifyProfile | None 
                 "unclassified": sum(1 for a in assets if not a.get("project")),
             },
             "projects": len(projects),
+            "components": {"total": len(components), "unmatched": sum(c['match_status'] != 'matched' for c in components)},
             "readiness": {"percent": review["readiness_percent"], "ready": review["ready_servers"], "servers": review["servers"]},
             "by_severity": review["by_severity"],
             "top_rules": sorted([r for r in review["rules"] if r["count"]], key=lambda r: (SEVERITY_ORDER[r["severity"]], -r["count"]))[:6],
@@ -87,9 +98,17 @@ def create_router(db_path: str | Path, classify_profile: ClassifyProfile | None 
         for a in assets:
             if a.get("project") and not a.get("shared"):
                 groups.setdefault(a["project"], []).append(a)
+        components = store.components()
+        by_key = {a['key']: a for a in assets}
+        for c in components:
+            if c['project']:
+                members = groups.setdefault(c['project'], [])
+                if c['asset_key'] in by_key and not any(a['key'] == c['asset_key'] for a in members):
+                    members.append({**by_key[c['asset_key']], 'project_name': c['project_name']})
         rows = []
         for code, members in groups.items():
-            name = members[0].get("project_name") or code.upper()
+            deployments = [c for c in components if c['project'] == code]
+            name = (members[0].get("project_name") if members else deployments[0]['project_name']) or code.upper()
             if q and q.lower() not in code.lower() and q.lower() not in name.lower():
                 continue
             ready = review["projects"].get(code, {"percent": 100})
@@ -98,6 +117,7 @@ def create_router(db_path: str | Path, classify_profile: ClassifyProfile | None 
                     "code": code,
                     "name": name,
                     "assets": len(members),
+                    "components": len(deployments),
                     "envs": sorted({profile.env_names.get(m["env"], m["env"]) for m in members if m.get("env")}),
                     "zones": sorted({m.get("zone") or "-" for m in members}),
                     "roles": dict(Counter(m.get("role") or "-" for m in members).most_common()),
@@ -117,13 +137,52 @@ def create_router(db_path: str | Path, classify_profile: ClassifyProfile | None 
         page_size: int = Query(20, ge=1, le=200),
         store: AtlasStore = Depends(get_store),  # noqa: B008
     ) -> dict[str, Any]:
-        rows = store.classified_assets(project=project)
+        rows = store.classified_assets()
+        if project:
+            keys = {c['asset_key'] for c in store.components() if c['project'] == project}
+            rows = [a for a in rows if a.get('project') == project or a['key'] in keys]
         if q:
             keys = {r["key"] for r in store.search(q, limit=100_000)["items"]}
             rows = [r for r in rows if r["key"] in keys]
         if zone:
             rows = [r for r in rows if r.get("zone") == zone]
         return _page(rows, page, page_size)
+
+    def source_detail(row, store):
+        if row is None:
+            raise HTTPException(404, "자산을 찾지 못했습니다.")
+        origin = row.get("origin_run_id") or row["run_id"]
+        run = store.run(origin) or {}
+        raw = store.conn.execute("SELECT cells_json FROM asset_rows WHERE run_id = ? AND row_number = ?", (origin, row["row_number"])).fetchone()
+        cells = json.loads(raw[0]) if raw else []
+        return {
+            "asset": row,
+            "source": {k: run.get(k) for k in ("id", "source_name", "source_id", "source_sha256", "sheet", "finished_at")},
+            "row_number": row["row_number"],
+            "raw": [{"column": h, "value": cells[i] if i < len(cells) else ""} for i, h in enumerate(run.get("headers", []))],
+            "issues": [i for i in store.issues(origin) if i["row_number"] == row["row_number"]],
+        }
+
+    @router.get("/asset")
+    def asset(key: str, store: AtlasStore = Depends(get_store)) -> dict[str, Any]:  # noqa: B008
+        result = source_detail(next((a for a in store.classified_assets() if a['key'] == key), None), store)
+        result['components'] = [c for c in store.components() if c['asset_key'] == key]
+        return result
+
+    @router.get("/components")
+    def components(q: str = '', kind: str = '', project: str = '', page: int = Query(1, ge=1), page_size: int = Query(50, ge=1, le=200), store: AtlasStore = Depends(get_store)) -> dict:  # noqa: B008
+        rows = store.components()
+        if kind:
+            rows = [r for r in rows if r['component_kind'] == kind]
+        if project:
+            rows = [r for r in rows if r['project'] == project]
+        if q:
+            rows = [r for r in rows if q.lower() in ' '.join(str(v or '') for v in r.values()).lower()]
+        return _page(rows, page, page_size)
+
+    @router.get("/component")
+    def component(key: str, store: AtlasStore = Depends(get_store)) -> dict:  # noqa: B008
+        return source_detail(next((c for c in store.components() if c['key'] == key), None), store)
 
     @router.get("/review")
     def review(
@@ -146,7 +205,9 @@ def create_router(db_path: str | Path, classify_profile: ClassifyProfile | None 
             d = diff_runs(store, before, after)
         except ValueError as e:
             raise HTTPException(400, str(e)) from e
-        return {**d, "added": d["added"][:limit], "removed": d["removed"][:limit], "changed": d["changed"][:limit]}
+        components = d['components']
+        return {**d, "added": d["added"][:limit], "removed": d["removed"][:limit], "changed": d["changed"][:limit],
+                "components": {**components, **{k: components[k][:limit] for k in ('added', 'removed', 'changed')}}}
 
     def _diagram(store: AtlasStore, view: str, project: str | None, fmt: str, max_nodes: int) -> Any:
         try:
@@ -174,7 +235,26 @@ def create_router(db_path: str | Path, classify_profile: ClassifyProfile | None 
     return router
 
 
-def create_app(db_path: str | Path, classify_profile: ClassifyProfile | None = None) -> FastAPI:
+def create_app(db_path: str | Path, classify_profile: ClassifyProfile | None = None, *, ui_dir: str | Path | None = None) -> FastAPI:
+    from .imports import import_router
+
     app = FastAPI(title="onprem-atlas", docs_url="/api/docs", openapi_url="/api/openapi.json")
     app.include_router(create_router(db_path, classify_profile))
+    app.include_router(import_router(db_path, classify_profile))
+    from .documents import document_router, editor_path
+    from fastapi.staticfiles import StaticFiles
+
+    app.include_router(document_router(db_path, classify_profile))
+    if (editor_path() / 'index.html').is_file():
+        @app.get('/editor/js/app.min.js', include_in_schema=False)
+        def editor_script():
+            upstream = (editor_path() / 'js/app.min.js').read_bytes()
+            bridge = Path(__file__).with_name('editor-bridge.js').read_bytes()
+            return Response(upstream + b'\n' + bridge, media_type='application/javascript', headers={'Cache-Control': 'no-cache'})
+
+        app.mount('/editor', StaticFiles(directory=editor_path(), html=True), name='drawio-editor')
+    if ui_dir:
+        from fastapi.staticfiles import StaticFiles
+
+        app.mount("/", StaticFiles(directory=ui_dir, html=True), name="console")
     return app

@@ -1,0 +1,9 @@
+{
+  "rules": [
+    {
+      "id": "std",
+      "pattern": "^(?P<site>[a-z]\\d)(?P<env>[pds])-(?P<project>[a-z0-9]+)-(?P<role>[a-z]+?)(?P<seq>\\d{2})$"
+    }
+  ],
+  "shared_codes": ["ad", "bkp", "mon", "ntp", "sec", "net"]
+}

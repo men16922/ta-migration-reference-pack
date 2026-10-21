@@ -100,7 +100,9 @@ def normalize_rows(rows: list[list[str]], header: HeaderMatch, profile: MappingP
         if not hostname:
             issues.append(Issue(row_number, ERROR, "MISSING_HOSTNAME", "호스트명이 비어 있어 제외했습니다."))
             continue
-        key = hostname_key(hostname)
+        # Company and site scope distinguish repeated hostnames in different estates.
+        scope = [raw.get("organization", "").strip(), raw.get("site", "").strip()]
+        key = "|".join([*(v.lower() for v in scope), hostname_key(hostname)]) if scope[0] else hostname_key(hostname)
         if key in seen_host:
             issues.append(Issue(row_number, ERROR, "DUPLICATE_HOSTNAME", f"호스트명 '{hostname}'이(가) {seen_host[key]}행과 중복되어 제외했습니다."))
             continue
@@ -116,6 +118,17 @@ def normalize_rows(rows: list[list[str]], header: HeaderMatch, profile: MappingP
             elif extra:
                 issues.append(Issue(row_number, WARNING, "MULTIPLE_IP", f"IP가 여러 개입니다 — 첫 번째({ip})를 대표 IP로 씁니다: {', '.join(extra)}"))
             values["ip"] = ip
+        for address_field in ("management_ip", "service_ip"):
+            if raw.get(address_field):
+                first, extra = parse_ip(raw[address_field])
+                values[address_field] = ", ".join([first, *extra]) if first else None
+                if not first:
+                    issues.append(Issue(row_number, WARNING, "INVALID_IP", f"{address_field} 형식을 확인하세요."))
+        # Preserve address roles; only the display address falls back to a known address.
+        if not values["ip"]:
+            fallback = values.get("service_ip") or values.get("management_ip")
+            if fallback:
+                values["ip"] = str(fallback).split(", ")[0]
         if values["ip"]:
             bare = str(values["ip"]).split("/")[0]
             if bare in seen_ip:

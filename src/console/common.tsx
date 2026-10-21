@@ -12,9 +12,8 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-  Tag,
 } from '@carbon/react';
-import type { ApiState, RuleSummary } from './api';
+import type { ApiState } from './api';
 
 export const PageHeader: React.FC<{
   crumbs?: Array<{ label: string; onClick?: () => void }>;
@@ -50,26 +49,13 @@ export function ApiGate<T>({ state, children }: { state: ApiState<T>; children: 
         lowContrast
         hideCloseButton
         title="데이터를 불러오지 못했습니다"
-        subtitle={`${state.error} — 키트 API(onprem-atlas serve --db …)가 실행 중인지 확인하세요.`}
+        subtitle={`${state.error} — 잠시 후 다시 시도하거나 운영 담당자에게 확인하세요.`}
       />
     );
   }
   if (!state.data) return <InlineLoading description="불러오는 중…" />;
   return <>{children(state.data)}</>;
 }
-
-const SEVERITY: Record<RuleSummary['severity'], { label: string; type: 'red' | 'magenta' | 'blue' | 'gray' }> = {
-  high: { label: '높음', type: 'red' },
-  medium: { label: '중간', type: 'magenta' },
-  low: { label: '낮음', type: 'blue' },
-  info: { label: '정보', type: 'gray' },
-};
-
-export const SeverityTag: React.FC<{ severity: RuleSummary['severity'] }> = ({ severity }) => (
-  <Tag size="sm" type={SEVERITY[severity].type}>
-    {SEVERITY[severity].label}
-  </Tag>
-);
 
 export interface Column<T> {
   key: string;

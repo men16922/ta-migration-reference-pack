@@ -1,7 +1,7 @@
-# TA Migration Lab — Makefile
+# Onprem Atlas — Makefile
 .DEFAULT_GOAL := check
 
-check: doc-budget lint typecheck test kit build ## offline deterministic verification gate
+check: doc-budget doc-links lint typecheck test kit build ## offline deterministic verification gate
 	@echo "✓ make check: all offline deterministic checks passed"
 
 doc-budget: ## enforce harness entry-doc existence and line budgets
@@ -15,26 +15,11 @@ errs = []; \
 print("\n".join(errs), file=sys.stderr) if errs else print("✓ doc-budget OK"); \
 sys.exit(1 if errs else 0)'
 
-test: ## validate reference pack fixtures & run project tests if present
-	@python3 -c 'import json, pathlib, sys; \
-req = ["README.md", "implementation-brief.md", "reference-analysis.md", "source-inspection.md", "references.json", "fixtures/intent-example.json", "fixtures/fixture-specifications.json", "docs/engineering/interp/INTERPRETATION.md"]; \
-missing = [p for p in req if not pathlib.Path(p).is_file()]; \
-assert not missing, f"missing required files: {missing}"; \
-refs = json.loads(pathlib.Path("references.json").read_text()); \
-assert isinstance(refs.get("references"), list) and len(refs["references"]) >= 10, "references.json invalid"; \
-intent = json.loads(pathlib.Path("fixtures/intent-example.json").read_text()); \
-assert {"workloads", "snapshots", "intent"} <= set(intent.keys()), "intent-example.json missing keys"; \
-specs = json.loads(pathlib.Path("fixtures/fixture-specifications.json").read_text()); \
-tests = specs.get("tests", []); \
-ids = [t.get("id") for t in tests]; \
-expected_ids = [f"T{i:02d}" for i in range(1, 13)]; \
-assert ids == expected_ids, f"fixture test IDs mismatch: {ids} != {expected_ids}"; \
-assert all(t.get("expectedNetworkOutcome") in {"reachable", "blocked", "unknown"} for t in tests), "invalid expectedNetworkOutcome"; \
-assert all(t.get("expectedIntentVerdict") in {"pass", "fail", "unknown"} for t in tests), "invalid expectedIntentVerdict"; \
-print("✓ reference pack & fixture specifications verified (12/12 specs valid)")'
-	@if [ -f package.json ] && python3 -c 'import json,sys; sys.exit(0 if "test" in json.load(open("package.json")).get("scripts",{}) else 1)'; then \
-		npm test; \
-	fi
+doc-links: ## check current product documentation links
+	@python3 scripts/check_docs.py
+
+test: ## run active console tests
+	@npm test
 
 lint: ## run linter if configured in package.json
 	@if [ -f package.json ] && python3 -c 'import json,sys; sys.exit(0 if "lint" in json.load(open("package.json")).get("scripts",{}) else 1)'; then \
@@ -58,21 +43,15 @@ kit: ## onprem-atlas Python kit: ruff + pytest (synthetic data only)
 	@cd kit && $(KIT_PY) -m ruff check src tests && $(KIT_PY) -m pytest -q
 
 kit-setup: ## create kit/.venv with test extras (needs network once)
-	@cd kit && uv venv .venv && uv pip install --python .venv/bin/python -e '.[test]'
+	@cd kit && uv venv .venv && uv pip install --python .venv/bin/python -e '.[test,web]'
 
-ATLAS_DEMO ?= kit/demo
-
-atlas-demo: ## synthetic 5,000-asset demo: two ESM syncs → SQLite → API :8770 (run `npm run dev` for the console)
-	@mkdir -p $(ATLAS_DEMO) && rm -f $(ATLAS_DEMO)/atlas.db $(ATLAS_DEMO)/atlas.db-wal $(ATLAS_DEMO)/atlas.db-shm
-	@cd kit && PYTHONPATH=src $(KIT_PY) -m onprem_atlas.cli synth --out demo/esm-2026-10-01.xlsx --drift-out demo/esm-2026-10-21.xlsx
-	@cd kit && PYTHONPATH=src $(KIT_PY) -m onprem_atlas.cli import demo/esm-2026-10-01.xlsx --db demo/atlas.db
-	@cd kit && PYTHONPATH=src $(KIT_PY) -m onprem_atlas.cli import demo/esm-2026-10-21.xlsx --db demo/atlas.db
-	@cd kit && PYTHONPATH=src $(KIT_PY) -m onprem_atlas.cli classify --db demo/atlas.db
-	@cd kit && PYTHONPATH=src $(KIT_PY) -m onprem_atlas.cli serve --db demo/atlas.db --port 8770
+atlas: build ## local workspace, no synthetic data or database reset; UI + API :8770
+	@mkdir -p kit/local
+	@$(KIT_PY) -m onprem_atlas.cli serve --db kit/local/atlas.db --ui-dir dist --port 8770
 
 smoke-local: check ## local smoke test alias
 
-.PHONY: check doc-budget test lint typecheck build kit kit-setup atlas-demo smoke-local
+.PHONY: check doc-budget doc-links test lint typecheck build kit kit-setup atlas smoke-local
 
 # ===== overnight harness targets (append to your Makefile) =====
 # The overnight runner + helpers are the Single Source of Truth in the overnight-harness

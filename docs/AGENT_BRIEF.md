@@ -1,37 +1,42 @@
 # Agent Brief
 
-Last Updated: 2026-10-21
+Last Updated: 2026-10-22
 
-This file is a compressed context for session start (≤60 lines). For details, open linked documents only when needed.
-
-> ▶ NEXT SESSION: P8 assistant panel (Gemini/Copilot-style docked, SSE contract, no MCP). P1/P2/P2.5/P3 + console shell are done — IDC/project draw.io diagrams in `kit/src/onprem_atlas/diagram`, console 구성도 page (`docs/images/atlas-idc-diagram.png`). K2–K6 still await the user.
+> ▶ NEXT SESSION: Read `docs/plans/2026-10-21-enterprise-idc-tool.md`, then preview an approved real/anonymized ESM workbook in a separate acceptance DB; compare sheet/header mappings and identity/export scope before committing data. If no workbook is available, report that dependency rather than importing screenshots. Current limits: `docs/evaluation.md`.
 
 ## Snapshot
 
-**On-Premise FPMS & Network Digital Twin Console (`ta-migration-reference-pack`)** is a 100% VM-free, pure **IBM Carbon Design System (`@carbon/react` + `@carbon/styles`)** web application (`TypeScript + React + Vite + Vitest`) modeled after **AWS Reachability Analyzer / Security Groups** and commercial On-Premise FPMS/Digital Twin solutions (**NxPortrait, Firescan, Tufin, Forward Enterprise, Batfish**). It includes deterministic bidirectional reachability (`src/core/analyzer.ts`), multi-firewall AFP & CLI remediation (`src/core/remediationGenerator.ts`), `rea@6.5.0` reverse-engineered CIDR set-algebra & OpenWrt `fw4` policy audit (`src/core/firewallAuditEngine.ts`, `docs/rea-reconstruction-ledger.md`), and a 9-vendor config parser (`src/adapters/vendorConfigParser.ts`).
+**Onprem Atlas** is a local ESM Excel inventory and IDC architecture tool (Python/FastAPI/SQLite + React/Carbon).
+User scope: useful internal enterprise tool, not a demo. Knowledge is maintained in a separate store and searched through the company AI Agent. No MCP.
+
+- Excel browser upload → sheet/header mapping preview → errors/changes → explicit registration. Source-scoped merge/replace preserves other inventory sources; partial files default to merge.
+- Preserves source hashes, raw rows, registration runs; separates representative/management/service IP, ownership, business hierarchy, environment, equipment categories and HA declarations.
+- Monochrome IDC/business diagrams; WEB/WAS/DB instances attach to hosts without inflating asset counts. Local draw.io edit/history preserves manually drawn firewall/zone/communication separately from source snapshots. No inferred /24 or network links.
+- Slim console: dashboard, Excel registration, IDC diagram, business systems, assets/detail, registration/change history. Unused TS network lab/adapters/fixtures and static-only deployment removed; historical docs consolidated in docs/archive/.
+- Separate versioned knowledge DB; group-scoped searches + read-only Agent tools with source citations. Live company Agent/model and company SSO are not connected.
+- Portable backups include SQLite + uploaded originals, hashes and integrity verification. v1 inventory migration preserves historical rows.
+
+- Security source preserves solution types and raw operation/team/monitoring columns. Final local evaluation: `docs/evaluation.md`.
 
 ## Active Work
 
-Authority: `docs/NEXT_PLAN.md`.
-
-1. **Active**: On-prem asset kit for AWS migration — ESM xlsx → SQLite (P1/P2/P2.5 + read API + console shell done) → project-scoped draw.io diagrams + sizing input export. No agent/sizing math (company has them); UI = Carbon IBM Cloud console style with Gemini/Copilot-style assistant panel; no MCP.
-2. **Completed**: Pure IBM Carbon UI overhaul, AWS Reachability Analyzer UX, 4-target `rea@6.5.0` precision reverse engineering (`cidr-tools`, `ipaddr.js`, `luci-app-firewall`, `@containerlab/clab-viewer`), 24/24 tests, and GitHub push (`https://github.com/men16922/ta-migration-reference-pack`).
-
-## Read Order
-
-1. Current State: `docs/STATUS.md`
-2. Next Work: `docs/NEXT_PLAN.md`
-3. Recent Log: `docs/PROGRESS_LOG.md`
-4. Reverse-Engineering & Architecture: `docs/rea-reconstruction-ledger.md`, `docs/gcp-cost-minimal-architecture.md`, `fixtures/execution-evidence.json`
+Authority: `docs/NEXT_PLAN.md` and `docs/plans/2026-10-21-enterprise-idc-tool.md`.
+Earlier P8 assistant-first and migration-simulator plans are superseded for the product.
+Real ESM acceptance, actual company Agent integration and relationship sources remain external dependencies.
+Working branch `feat/diagram-drawio-icons`, HEAD `f28c568`: implementation and new modules/docs remain uncommitted. Preserve untracked files as part of this work bundle.
+At checkpoint, :8770 uses `kit/local/atlas.db` (run #2/3 assets); :8771 uses `/tmp/ta-enterprise-qa-v2/inventory.db` (14 synthetic assets/9 instances, six sources, drawing revisions 1–4). Recheck processes before restarting; temporary QA storage is not a durable backup.
 
 ## Commands
 
-- Verification Gate: `make check` (includes `make kit`: Python ruff + pytest; `make kit-setup` creates `kit/.venv`)
-- Doc Budget Check: `make doc-budget`
-- Unit & Component Tests: `npm test`
-- Production Build: `npm run build`
+- `make kit-setup` — local Python dependencies (test + web).
+- `make check` — offline deterministic gate; `make doc-budget` — documentation budgets.
+- `make atlas` — build and serve UI/API at http://127.0.0.1:8770 using `kit/local/atlas.db`; never resets or seeds data.
+- Development: API :8770 + `npm run dev -- --host 127.0.0.1` (:5173).
+- Operations and Agent wiring: `docs/enterprise-operations.md`.
 
 ## Guardrails
 
-- Synthetic/public data only; never connect to corporate networks, live Docker sockets from the browser, or live AWS/GCP accounts during automated loops.
-- `src/styles.css` holds console shell layout only (grid, nav, page header) using Carbon tokens; no per-component overrides of Carbon styles.
+- Synthetic data only for automated validation. Company sample captures stay local (`sample/` ignored); never copy real rows into fixtures or public docs.
+- Upload writes are loopback-only, bounded and origin checked. Shared deployment must bind company authentication/authorization before exposure.
+- Preserve mixed WIP. No commit, push, external publication, paid model call or company network access without authorization.
+- `src/styles.css` may contain layout using Carbon tokens; do not override Carbon component internals.

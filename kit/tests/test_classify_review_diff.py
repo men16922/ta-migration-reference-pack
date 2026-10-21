@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
 
 import pytest
 
@@ -10,6 +11,8 @@ from onprem_atlas.ingest import parse_rows, parse_xlsx
 from onprem_atlas.review import review_assets, review_run
 from onprem_atlas.store import AtlasStore
 from onprem_atlas.synth import drift_rows, generate_rows, write_xlsx
+
+SYNTHETIC_PROFILE = ClassifyProfile.load(Path(__file__).parents[1] / "examples" / "classify-synthetic.json")
 
 HEADER = ["호스트명", "IP", "시스템명", "자산분류", "CPU 모델", "CPU 코어", "메모리", "담당자", "망구분", "OS", "운영상태"]
 SPEC = ["Intel Xeon Gold 6338", "64", "128"]
@@ -35,13 +38,13 @@ def store():
 
 
 def test_naming_rule_groups():
-    assert match_naming("a1p-erp-was01", ClassifyProfile()) == ("std", {"site": "a1", "env": "p", "project": "erp", "role": "was", "seq": "01"})
-    assert match_naming("A1P-ERP-WAS01.corp.local", ClassifyProfile())[1]["project"] == "erp"
-    assert match_naming("erp_legacy_batch", ClassifyProfile()) is None
+    assert match_naming("a1p-erp-was01", SYNTHETIC_PROFILE) == ("std", {"site": "a1", "env": "p", "project": "erp", "role": "was", "seq": "01"})
+    assert match_naming("A1P-ERP-WAS01.corp.local", SYNTHETIC_PROFILE)[1]["project"] == "erp"
+    assert match_naming("erp_legacy_batch", SYNTHETIC_PROFILE) is None
 
 
 def test_classify_sources_shared_and_conflict(store):
-    summary = classify_run(store)
+    summary = classify_run(store, SYNTHETIC_PROFILE)
     assert summary["by_source"] == {"column": 1, "naming": 6, "unclassified": 1}
     by_key = {a["key"]: a for a in store.classified_assets()}
     assert by_key["erp_legacy_batch"]["project"] == "erp" and by_key["erp_legacy_batch"]["classify_source"] == "column"
@@ -54,7 +57,7 @@ def test_classify_sources_shared_and_conflict(store):
 
 def test_manual_override_and_profile_validation(store, tmp_path):
     profile_path = tmp_path / "p.json"
-    profile_path.write_text(json.dumps({"manual": {"Mystery-Box": "hr"}, "project_names": {"hr": "인사"}}), encoding="utf-8")
+    profile_path.write_text(json.dumps({**json.loads(SYNTHETIC_PROFILE.to_json()), "manual": {"Mystery-Box": "hr"}, "project_names": {"hr": "인사"}}), encoding="utf-8")
     classify_run(store, ClassifyProfile.load(profile_path))
     by_key = {a["key"]: a for a in store.classified_assets()}
     assert by_key["mystery-box"]["project"] == "hr" and by_key["mystery-box"]["classify_source"] == "manual"
@@ -66,7 +69,7 @@ def test_manual_override_and_profile_validation(store, tmp_path):
 
 
 def test_review_rules_and_readiness(store):
-    classify_run(store)
+    classify_run(store, SYNTHETIC_PROFILE)
     result = review_run(store)
     counts = {r["rule"]: r["count"] for r in result["rules"]}
     assert counts == {
@@ -113,9 +116,9 @@ def test_diff_runs_on_synthetic_drift(tmp_path):
 def test_classify_5000_is_deterministic(esm5000):
     with AtlasStore(":memory:") as s:
         s.import_parsed(parse_xlsx(esm5000), source_name="a", source_sha256="1")
-        first = classify_run(s)
-        again = classify_run(s)
+        first = classify_run(s, SYNTHETIC_PROFILE)
+        again = classify_run(s, SYNTHETIC_PROFILE)
         assert first == again
         assert first["by_source"].get("unclassified", 0) < 20 and first["projects"] == 150
     assets = [{"key": "a1p-x-was01", "hostname": "a1p-x-was01"}]
-    assert classify_assets(assets, ClassifyProfile())[0].project == "x"
+    assert classify_assets(assets, SYNTHETIC_PROFILE)[0].project == "x"

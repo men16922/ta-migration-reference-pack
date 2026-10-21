@@ -1,12 +1,12 @@
 """classify: 자산 → 프로젝트(업무 시스템) 분류.
 
-근거 우선순위: 수동 지정(`manual`) > 명명 규칙(`naming`) > ESM 시스템명 컬럼(`column`).
-컬럼 분류는 별칭표 없이 데이터에서 배운다: 명명 규칙으로 분류된 자산들의 시스템명 → 프로젝트 코드 다수결.
-규칙·공통 인프라 판정은 프로파일(JSON)이라 회사 명명 규칙이 바뀌어도 코드는 그대로다.
+기본값은 명시적 ESM 업무 컬럼만 사용한다. 명명 규칙·공통 코드와 수동 지정은
+운영자가 선택한 프로파일(JSON)에서만 활성화한다. ITSM 계층과 수동 지정은 이름 추정보다 우선한다.
 """
 
 from __future__ import annotations
 
+import hashlib
 import json
 import re
 from collections import Counter, defaultdict
@@ -17,9 +17,6 @@ from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
     from ..store import AtlasStore
 
-# 합성 데이터(`synth.py`)와 같은 기본 규칙: <센터2><환경1>-<업무코드>-<역할><순번2>
-DEFAULT_RULES = [{"id": "std", "pattern": r"^(?P<site>[a-z]\d)(?P<env>[pds])-(?P<project>[a-z0-9]+)-(?P<role>[a-z]+?)(?P<seq>\d{2})$"}]
-DEFAULT_SHARED = ["ad", "bkp", "mon", "ntp", "sec", "net"]
 DEFAULT_ENVS = {"p": "운영", "d": "개발", "s": "스테이징"}
 
 
@@ -31,11 +28,11 @@ class NamingRule:
 
 @dataclass
 class ClassifyProfile:
-    rules: list[NamingRule] = field(default_factory=lambda: [NamingRule(r["id"], re.compile(r["pattern"])) for r in DEFAULT_RULES])
-    shared_codes: set[str] = field(default_factory=lambda: set(DEFAULT_SHARED))
+    rules: list[NamingRule] = field(default_factory=list)
+    shared_codes: set[str] = field(default_factory=set)
     env_names: dict[str, str] = field(default_factory=lambda: dict(DEFAULT_ENVS))
     project_names: dict[str, str] = field(default_factory=dict)  # 코드 → 표시 이름(없으면 시스템명 다수결)
-    manual: dict[str, str] = field(default_factory=dict)  # hostname(소문자) → 프로젝트 코드
+    manual: dict[str, str] = field(default_factory=dict)  # 정규화 자산 key → 프로젝트 코드
     column: str = "system_name"
 
     @classmethod
@@ -43,13 +40,13 @@ class ClassifyProfile:
         if path is None:
             return cls()
         data = json.loads(Path(path).read_text(encoding="utf-8"))
-        rules = data.get("rules", DEFAULT_RULES)
+        rules = data.get("rules", [])
         for r in rules:
             if "project" not in re.compile(r["pattern"]).groupindex:
                 raise ValueError(f"규칙 '{r['id']}'에 (?P<project>...) 이름 그룹이 없습니다.")
         return cls(
             rules=[NamingRule(r["id"], re.compile(r["pattern"], re.IGNORECASE)) for r in rules],
-            shared_codes={c.lower() for c in data.get("shared_codes", DEFAULT_SHARED)},
+            shared_codes={c.lower() for c in data.get("shared_codes", [])},
             env_names=dict(data.get("env_names", DEFAULT_ENVS)),
             project_names={k.lower(): v for k, v in data.get("project_names", {}).items()},
             manual={k.strip().lower(): v.lower() for k, v in data.get("manual", {}).items()},
@@ -118,6 +115,15 @@ def classify_assets(assets: list[dict[str, Any]], profile: ClassifyProfile) -> l
             c.conflict = f"이름은 '{c.project}', 시스템명 '{system}'은(는) 보통 '{learned}'"
         elif c.source is None and learned:
             c.project, c.source = learned, "column"
+        # ESM's declared business hierarchy outranks hostname inference.
+        explicit = a.get("business_l3") or (system if not learned else None)
+        if explicit:
+            hierarchy = [a.get("organization") or "", a.get("business_l1") or "", a.get("business_l2") or "", explicit]
+            c.project = "biz-" + hashlib.sha256("/".join(hierarchy).encode()).hexdigest()[:12]
+            c.source = "column"
+            c.conflict = None
+        if a.get("environment"):
+            c.env = {"운영": "p", "개발": "d", "검증": "s", "스테이징": "s"}.get(a["environment"], a["environment"])
         manual = profile.manual.get(c.key)
         if manual:
             c.project, c.source, c.conflict = manual, "manual", None
@@ -128,8 +134,8 @@ def classify_assets(assets: list[dict[str, Any]], profile: ClassifyProfile) -> l
 def project_display_names(assets: list[dict[str, Any]], results: list[Classification], profile: ClassifyProfile) -> dict[str, str]:
     votes: dict[str, Counter[str]] = defaultdict(Counter)
     for a, c in zip(assets, results, strict=True):
-        if c.project and a.get(profile.column):
-            votes[c.project][a[profile.column]] += 1
+        if c.project and (a.get("business_l3") or a.get(profile.column)):
+            votes[c.project][a.get("business_l3") or a[profile.column]] += 1
     names = {p: sorted(cnt.items(), key=lambda kv: (-kv[1], kv[0]))[0][0] for p, cnt in votes.items()}
     names.update(profile.project_names)
     return names

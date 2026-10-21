@@ -7,12 +7,14 @@ from pathlib import Path
 
 import pytest
 
-from onprem_atlas.classify import classify_run
+from onprem_atlas.classify import ClassifyProfile, classify_run
 from onprem_atlas.cli import main
 from onprem_atlas.diagram import render
 from onprem_atlas.ingest import parse_rows, parse_xlsx
 from onprem_atlas.store import AtlasStore
 from onprem_atlas.synth import generate_rows, write_xlsx
+
+SYNTHETIC_PROFILE = ClassifyProfile.load(Path(__file__).parents[1] / "examples" / "classify-synthetic.json")
 
 GOLDEN = Path(__file__).parent / "golden" / "mini-erp.drawio"
 HEADER = ["호스트명", "IP", "시스템명", "자산분류", "CPU 코어", "메모리", "센터", "망구분", "OS"]
@@ -33,6 +35,7 @@ MINI = [
 def mini(tmp_path):
     s = AtlasStore(tmp_path / "mini.db", clock=lambda: "2026-10-21T00:00:00+00:00")
     s.import_parsed(parse_rows(MINI, sheet="자산목록"), source_name="mini.xlsx", source_sha256="0")
+    classify_run(s, SYNTHETIC_PROFILE)
     yield s
     s.close()
 
@@ -42,7 +45,7 @@ def big(tmp_path_factory):
     d = tmp_path_factory.mktemp("diagram")
     s = AtlasStore(d / "atlas.db")
     s.import_parsed(parse_xlsx(write_xlsx(d / "a.xlsx", generate_rows(5000))), source_name="a.xlsx", source_sha256="1")
-    classify_run(s)
+    classify_run(s, SYNTHETIC_PROFILE)
     yield s
     s.close()
 
@@ -77,9 +80,7 @@ def test_project_diagram_mini_golden(mini):
     assert {"a1p-erp-web01", "a1p-erp-was02", "a1p-erp-db01", "a1d-erp-was01"} <= set(labels)
     assert "AD/DNS × 1" in labels and "방화벽 × 1" in labels  # 공통 서비스·네트워크는 참조
     assert "a1p-ad-svr01" not in labels
-    zones = {b["id"]: b["label"] for b in layout["boxes"] if b["kind"] == "zone"}
-    assert [(zones[e["source"]], zones[e["target"]]) for e in layout["edges"]] == [("DMZ", "업무망"), ("업무망", "DB망")]
-    assert all(e["kind"] == "inferred" for e in layout["edges"])
+    assert layout["edges"] == []  # Asset membership does not establish a network link.
     ET.fromstring(xml)
     if os.environ.get("UPDATE_GOLDEN"):
         GOLDEN.parent.mkdir(exist_ok=True)
@@ -96,7 +97,7 @@ def test_drawio_cells_relative_to_parent(mini):
         g = c.find("mxGeometry")
         assert g is not None and float(g.get("x", "0")) >= 0 and float(g.get("y", "0")) >= 0  # 자식 좌표는 부모 기준
     edges = [c for c in cells.values() if c.get("edge") == "1"]
-    assert edges and all(cells[e.get("source")].get("vertex") == "1" for e in edges)
+    assert edges == []
 
 
 def test_drawio_icons_on_every_leaf_node(mini):
@@ -108,8 +109,8 @@ def test_drawio_icons_on_every_leaf_node(mini):
         icon = cells[f"{b['id']}i"]
         assert icon.get("parent") == b["id"] and f"shape={b['icon']}" in icon.get("style")
     by_label = {b["label"]: b["icon"] for b in leaves}
-    assert by_label["a1p-erp-db01"] == "mxgraph.networks.storage"
-    assert by_label["a1p-erp-web01"] == "mxgraph.networks.web_server"
+    assert by_label["a1p-erp-db01"] == "cylinder3"
+    assert by_label["a1p-erp-web01"] == "mxgraph.cisco.computers_and_peripherals.web_browser"
     assert by_label["방화벽 × 1"] == "mxgraph.networks.firewall"
     assert by_label["L3/L2 스위치 × 1"] == "mxgraph.cisco.switches.layer_3_switch"
 

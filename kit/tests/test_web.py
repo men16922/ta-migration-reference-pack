@@ -1,10 +1,13 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 
 fastapi = pytest.importorskip("fastapi")
 from fastapi.testclient import TestClient  # noqa: E402
 
+from onprem_atlas.classify import ClassifyProfile  # noqa: E402
 from onprem_atlas.ingest import parse_xlsx  # noqa: E402
 from onprem_atlas.store import AtlasStore  # noqa: E402
 from onprem_atlas.synth import drift_rows, generate_rows, write_xlsx  # noqa: E402
@@ -18,7 +21,7 @@ def client(tmp_path_factory):
     with AtlasStore(d / "atlas.db") as s:
         s.import_parsed(parse_xlsx(write_xlsx(d / "a.xlsx", rows)), source_name="a.xlsx", source_sha256="1")
         s.import_parsed(parse_xlsx(write_xlsx(d / "b.xlsx", drift_rows(rows, seed=12))), source_name="b.xlsx", source_sha256="2")
-    return TestClient(create_app(d / "atlas.db"))
+    return TestClient(create_app(d / "atlas.db", ClassifyProfile.load(Path(__file__).parents[1] / "examples" / "classify-synthetic.json")))
 
 
 def test_summary(client):

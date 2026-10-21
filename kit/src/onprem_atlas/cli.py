@@ -190,7 +190,7 @@ def cmd_serve(a: argparse.Namespace) -> int:
     except ImportError:
         print("웹 의존성이 없습니다: pip install 'onprem-atlas[web]'", file=sys.stderr)
         return 2
-    uvicorn.run(create_app(a.db, ClassifyProfile.load(a.profile)), host=a.host, port=a.port, log_level="warning")
+    uvicorn.run(create_app(a.db, ClassifyProfile.load(a.profile), ui_dir=a.ui_dir), host=a.host, port=a.port, log_level="warning")
     return 0
 
 
@@ -266,7 +266,8 @@ def build_parser() -> argparse.ArgumentParser:
     common(sp)
     sp.set_defaults(func=cmd_diagram)
 
-    sp = sub.add_parser("serve", help="읽기 전용 HTTP API")
+    sp = sub.add_parser("serve", help="자산 API 및 로컬 Excel 등록")
+    sp.add_argument("--ui-dir", help="빌드된 콘솔 디렉터리 (npm run build 후 dist)")
     sp.add_argument("--host", default="127.0.0.1")
     sp.add_argument("--port", type=int, default=8770)
     sp.add_argument("--profile", help="분류 프로파일 JSON")

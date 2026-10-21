@@ -45,7 +45,13 @@ def read_sheet(path: str | Path, sheet: str | None = None) -> Sheet:
         if sheet is not None and sheet not in wb.sheetnames:
             raise ValueError(f"시트 '{sheet}'가 없습니다. 시트 목록: {', '.join(wb.sheetnames)}")
         ws = wb[sheet] if sheet else wb.worksheets[0]
-        rows = [[cell_text(v) for v in row] for row in ws.iter_rows(values_only=True)]
+        if (ws.max_row or 0) > 50000 or (ws.max_column or 0) > 256:
+            raise ValueError("Excel은 50,000행·256열 이하여야 합니다.")
+        rows = []
+        for n, row in enumerate(ws.iter_rows(values_only=True)):
+            if n >= 50000 or len(row) > 256:
+                raise ValueError("Excel은 50,000행·256열 이하여야 합니다.")
+            rows.append([cell_text(v) for v in row])
         width = max((len(r) for r in rows), default=0)
         return Sheet(ws.title, [r + [""] * (width - len(r)) for r in rows])
     finally:

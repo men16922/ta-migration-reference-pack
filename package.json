@@ -1,9 +1,9 @@
 {
-  "name": "ta-migration-lab",
+  "name": "onprem-atlas-console",
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Vendor-neutral IDC network learning, deterministic bidirectional reachability analysis, and AWS migration intent comparison web app (VM-free, client-side deterministic engine).",
+  "description": "ESM Excel inventory, source history and editable on-premises IDC architecture console.",
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
@@ -15,10 +15,8 @@
   "dependencies": {
     "@carbon/icons-react": "^11.90.0",
     "@carbon/react": "^1.118.0",
-    "@containerlab/clab-viewer": "0.1.0",
     "react": "18.3.1",
-    "react-dom": "18.3.1",
-    "yaml": "2.6.1"
+    "react-dom": "18.3.1"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "6.6.3",

@@ -16,17 +16,19 @@ from typing import Any
 
 from ..ingest import FIELDS, MappingProfile, ParsedSheet
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 3
 
 _TYPES = {"cpu_sockets": "INTEGER", "cpu_cores": "INTEGER", "memory_gb": "REAL"}
 _ASSET_COLUMNS = ",\n  ".join(f"{f} {_TYPES.get(f, 'TEXT')}" for f in FIELDS)
-_FTS_FIELDS = ("hostname", "ip", "system_name", "owner", "category", "model", "os", "zone", "site", "asset_tag")
+_FTS_FIELDS = ("hostname", "ip", "system_name", "owner", "category", "model", "os", "zone", "site", "asset_tag", "management_ip", "service_ip", "description", "business_l3", "organization")
 
 SCHEMA = f"""
 CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS sync_runs (
   id INTEGER PRIMARY KEY,
   source_name TEXT NOT NULL,
+  source_id TEXT NOT NULL DEFAULT 'legacy',
+  mode TEXT NOT NULL DEFAULT 'replace',
   source_sha256 TEXT NOT NULL,
   sheet TEXT NOT NULL,
   header_row INTEGER NOT NULL,
@@ -49,6 +51,8 @@ CREATE TABLE IF NOT EXISTS asset_rows (
 CREATE TABLE IF NOT EXISTS run_assets (
   run_id INTEGER NOT NULL REFERENCES sync_runs(id) ON DELETE CASCADE,
   key TEXT NOT NULL,
+  source_id TEXT NOT NULL DEFAULT 'legacy',
+  origin_run_id INTEGER,
   row_number INTEGER NOT NULL,
   {_ASSET_COLUMNS},
   PRIMARY KEY (run_id, key)
@@ -88,6 +92,22 @@ CREATE TABLE IF NOT EXISTS project_names (
   name TEXT NOT NULL,
   PRIMARY KEY (run_id, project)
 );
+CREATE TABLE IF NOT EXISTS pending_imports (
+  token TEXT PRIMARY KEY, path TEXT NOT NULL, source_id TEXT NOT NULL, source_name TEXT NOT NULL,
+  sha256 TEXT NOT NULL, profile_json TEXT NOT NULL, base_run INTEGER,
+  mode TEXT NOT NULL, created_at TEXT NOT NULL, committed_run INTEGER
+);
+CREATE TABLE IF NOT EXISTS run_components (
+  run_id INTEGER NOT NULL REFERENCES sync_runs(id), key TEXT NOT NULL,
+  source_id TEXT NOT NULL, origin_run_id INTEGER NOT NULL,
+  row_number INTEGER NOT NULL, values_json TEXT NOT NULL,
+  PRIMARY KEY (run_id, key)
+);
+CREATE TABLE IF NOT EXISTS diagram_documents (
+  scope TEXT NOT NULL, revision INTEGER NOT NULL, base_run INTEGER NOT NULL REFERENCES sync_runs(id),
+  xml TEXT NOT NULL, created_at TEXT NOT NULL,
+  PRIMARY KEY (scope, revision)
+);
 CREATE VIEW IF NOT EXISTS assets AS
   SELECT * FROM run_assets WHERE run_id = (SELECT MAX(id) FROM sync_runs);
 CREATE VIRTUAL TABLE IF NOT EXISTS assets_fts USING fts5(key UNINDEXED, {", ".join(_FTS_FIELDS)}, tokenize='trigram');
@@ -101,11 +121,16 @@ def utc_now() -> str:
 class AtlasStore:
     """자산 DB 하나. 경로 대신 ':memory:'도 된다."""
 
-    def __init__(self, path: str | Path, clock: Callable[[], str] = utc_now, *, check_same_thread: bool = True) -> None:
+    def __init__(self, path: str | Path, clock: Callable[[], str] = utc_now, *, check_same_thread: bool = True, read_only: bool = False) -> None:
         """`check_same_thread=False`: 연결 하나를 여러 스레드가 차례로 쓰는 경우(FastAPI 의존성은 핸들러와 다른 스레드에서 열린다).
         동시에 쓰지만 않으면 안전하다 — 웹 계층은 요청마다 연결을 새로 연다."""
         self.path = str(path)
         self.clock = clock
+        if read_only:
+            self.conn = sqlite3.connect(Path(path).resolve().as_uri() + "?mode=ro", uri=True, check_same_thread=check_same_thread)
+            self.conn.row_factory = sqlite3.Row
+            self.conn.execute("PRAGMA query_only = ON")
+            return
         self.conn = sqlite3.connect(self.path, check_same_thread=check_same_thread)
         self.conn.row_factory = sqlite3.Row
         self.conn.execute("PRAGMA foreign_keys = ON")
@@ -114,7 +139,30 @@ class AtlasStore:
         self.conn.executescript(SCHEMA)
         version = self.conn.execute("SELECT value FROM meta WHERE key = 'schema_version'").fetchone()
         if version is None:
-            self.conn.execute("INSERT INTO meta (key, value) VALUES ('schema_version', ?)", (str(SCHEMA_VERSION),))
+            self.conn.execute("INSERT OR IGNORE INTO meta (key, value) VALUES ('schema_version', ?)", (str(SCHEMA_VERSION),))
+            self.conn.commit()
+        elif int(version[0]) == 1:
+            with self._tx():
+                self.conn.execute("BEGIN IMMEDIATE")
+                current = int(self.conn.execute("SELECT value FROM meta WHERE key = 'schema_version'").fetchone()[0])
+                if current == SCHEMA_VERSION:
+                    return  # Another connection completed the migration while this one waited.
+                # Additive migration keeps every old run and raw source row intact.
+                existing = {r[1] for r in self.conn.execute("PRAGMA table_info(run_assets)")}
+                for name in FIELDS:
+                    if name not in existing:
+                        self.conn.execute(f"ALTER TABLE run_assets ADD COLUMN {name} {_TYPES.get(name, 'TEXT')}")
+                self.conn.execute("ALTER TABLE run_assets ADD COLUMN source_id TEXT NOT NULL DEFAULT 'legacy'")
+                self.conn.execute("ALTER TABLE run_assets ADD COLUMN origin_run_id INTEGER")
+                self.conn.execute("UPDATE run_assets SET origin_run_id = run_id")
+                self.conn.execute("ALTER TABLE sync_runs ADD COLUMN source_id TEXT NOT NULL DEFAULT 'legacy'")
+                self.conn.execute("ALTER TABLE sync_runs ADD COLUMN mode TEXT NOT NULL DEFAULT 'replace'")
+                self.conn.execute("DROP TABLE assets_fts")
+                self.conn.execute(f"CREATE VIRTUAL TABLE assets_fts USING fts5(key UNINDEXED, {', '.join(_FTS_FIELDS)}, tokenize='trigram')")
+                self.conn.execute(f"INSERT INTO assets_fts (key, {', '.join(_FTS_FIELDS)}) SELECT key, {', '.join(_FTS_FIELDS)} FROM assets")
+                self.conn.execute("UPDATE meta SET value = ? WHERE key = 'schema_version'", (str(SCHEMA_VERSION),))
+        elif int(version[0]) == 2:
+            self.conn.execute("UPDATE meta SET value = ? WHERE key = 'schema_version'", (str(SCHEMA_VERSION),))
             self.conn.commit()
         elif int(version[0]) != SCHEMA_VERSION:
             raise ValueError(f"지원하지 않는 DB 스키마 버전입니다: {version[0]} (필요: {SCHEMA_VERSION})")
@@ -130,6 +178,18 @@ class AtlasStore:
 
     @contextmanager
     def _tx(self) -> Generator[sqlite3.Connection]:
+        if self.conn.in_transaction:
+            # A classification saved during import must not commit the outer import.
+            # SQLite resolves repeated savepoint names to the innermost instance.
+            self.conn.execute("SAVEPOINT atlas_nested")
+            try:
+                yield self.conn
+                self.conn.execute("RELEASE SAVEPOINT atlas_nested")
+            except BaseException:
+                self.conn.execute("ROLLBACK TO SAVEPOINT atlas_nested")
+                self.conn.execute("RELEASE SAVEPOINT atlas_nested")
+                raise
+            return
         try:
             yield self.conn
             self.conn.commit()
@@ -139,13 +199,47 @@ class AtlasStore:
 
     # ------------------------------------------------------------------ 쓰기
 
-    def import_parsed(self, parsed: ParsedSheet, *, source_name: str, source_sha256: str, profile: MappingProfile | None = None) -> int:
+    def import_parsed(
+        self, parsed: ParsedSheet, *, source_name: str, source_sha256: str,
+        profile: MappingProfile | None = None, source_id: str = "legacy", mode: str = "replace",
+        expected_run: int | None = None, check_revision: bool = False, token: str | None = None,
+        before_commit: Callable[[int], Any] | None = None,
+    ) -> int:
         """한 트랜잭션으로 실행 하나를 기록하고 run id를 돌려준다. 실패하면 아무것도 남지 않는다."""
+        if mode not in ("merge", "replace") or not source_id.strip():
+            raise ValueError("유효한 원천과 등록 모드가 필요합니다.")
         profile_json = (profile or MappingProfile()).to_json()
+        from ..components import COMPONENT_FIELDS, SOURCES
+
+        component_import = source_id in SOURCES
+        compared_fields = COMPONENT_FIELDS if component_import else FIELDS
         started = self.clock()
         header_idx = parsed.header.header_row
         data_rows = [(i + 1, r) for i, r in enumerate(parsed.rows) if i + 1 > header_idx and any(c.strip() for c in r)]
         with self._tx() as c:
+            c.execute("BEGIN IMMEDIATE")
+            if token:
+                prior = c.execute("SELECT committed_run FROM pending_imports WHERE token = ?", (token,)).fetchone()
+                if prior and prior[0]:
+                    return int(prior[0])
+            current = self.latest_run_id()
+            if check_revision and current != expected_run:
+                raise ValueError("등록 이후 자산이 변경되었습니다. 파일을 다시 검토하세요.")
+            incoming = {a.key for a in parsed.assets}
+            old = self.list_assets(current, limit=1_000_000) if current else []
+            old_components = self.list_components(current) if current else []
+            updating = old_components if component_import else old
+            conflicts = [a["key"] for a in updating if a["key"] in incoming and a["source_id"] != source_id]
+            if conflicts:
+                raise ValueError(f"다른 원천과 자산 식별자가 중복됩니다 ({len(conflicts)}건). 원천/그룹사/설치지역을 확인하세요.")
+            if mode == "merge":
+                previous = {a["key"]: a for a in updating}
+                missing = {f for a in parsed.assets if a.key in previous for f in compared_fields
+                           if f not in parsed.header.mapping and previous[a.key].get(f) is not None and a.values.get(f) is None}
+                if missing:
+                    raise ValueError(f"기존 값이 있는 열이 파일에 없습니다: {', '.join(sorted(missing))}. 전체 열을 포함한 파일로 다시 검토하세요.")
+            retained = old if component_import else [a for a in old if a["source_id"] != source_id or (mode == "merge" and a["key"] not in incoming)]
+            retained_components = [a for a in old_components if a["source_id"] != source_id or (mode == "merge" and a["key"] not in incoming)]
             cur = c.execute(
                 "INSERT INTO sync_runs (source_name, source_sha256, sheet, header_row, headers_json, mapping_json, profile_json,"
                 " started_at, finished_at, row_count, asset_count, error_count, warning_count) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
@@ -166,6 +260,7 @@ class AtlasStore:
                 ),
             )
             run_id = int(cur.lastrowid or 0)
+            c.execute("UPDATE sync_runs SET source_id = ?, mode = ?, asset_count = ? WHERE id = ?", (source_id, mode, len(retained) + (0 if component_import else len(parsed.assets)), run_id))
             c.executemany(
                 "INSERT INTO asset_rows (run_id, row_number, cells_json) VALUES (?,?,?)",
                 ((run_id, n, json.dumps(r, ensure_ascii=False)) for n, r in data_rows),
@@ -173,8 +268,18 @@ class AtlasStore:
             cols = ", ".join(FIELDS)
             marks = ", ".join("?" for _ in FIELDS)
             c.executemany(
-                f"INSERT INTO run_assets (run_id, key, row_number, {cols}) VALUES (?, ?, ?, {marks})",
-                ((run_id, a.key, a.row_number, *(a.values.get(f) for f in FIELDS)) for a in parsed.assets),
+                f"INSERT INTO run_assets (run_id, key, source_id, origin_run_id, row_number, {cols}) VALUES (?, ?, ?, ?, ?, {marks})",
+                ((run_id, a.key, source_id, run_id, a.row_number, *(a.values.get(f) for f in FIELDS)) for a in parsed.assets if not component_import),
+            )
+            c.executemany(
+                f"INSERT INTO run_assets (run_id, key, source_id, origin_run_id, row_number, {cols}) VALUES (?, ?, ?, ?, ?, {marks})",
+                ((run_id, a["key"], a["source_id"], a["origin_run_id"], a["row_number"], *(a.get(f) for f in FIELDS)) for a in retained),
+            )
+            c.executemany(
+                "INSERT INTO run_components VALUES (?,?,?,?,?,?)",
+                [(run_id, a["key"], a["source_id"], a["origin_run_id"], a["row_number"],
+                  json.dumps({f: a.get(f) for f in (*COMPONENT_FIELDS, 'component_kind')}, ensure_ascii=False)) for a in retained_components]
+                + [(run_id, a.key, source_id, run_id, a.row_number, json.dumps(a.values, ensure_ascii=False)) for a in parsed.assets if component_import],
             )
             c.executemany(
                 "INSERT INTO asset_issues (run_id, row_number, severity, code, message) VALUES (?,?,?,?,?)",
@@ -184,9 +289,38 @@ class AtlasStore:
             fts_cols = ", ".join(_FTS_FIELDS)
             c.execute(f"INSERT INTO assets_fts (key, {fts_cols}) SELECT key, {fts_cols} FROM run_assets WHERE run_id = ?", (run_id,))
             c.execute("UPDATE sync_runs SET finished_at = ? WHERE id = ?", (self.clock(), run_id))
+            if before_commit is not None:
+                before_commit(run_id)
+            if token:
+                c.execute("UPDATE pending_imports SET committed_run = ? WHERE token = ?", (run_id, token))
         return run_id
 
     # ------------------------------------------------------------------ 읽기
+
+    def list_components(self, run_id: int | None = None) -> list[dict[str, Any]]:
+        rows = self.conn.execute("SELECT * FROM run_components WHERE run_id = ? ORDER BY key", (run_id or self.latest_run_id(),))
+        return [{**json.loads(r['values_json']), **{k: r[k] for k in ('key', 'run_id', 'source_id', 'origin_run_id', 'row_number')}} for r in rows]
+
+    def components(self, run_id: int | None = None) -> list[dict[str, Any]]:
+        from ..classify import ClassifyProfile, classify_assets, project_display_names
+        from ..components import associate
+
+        assets = self.classified_assets(run_id)
+        hosts = {a['key']: a for a in assets}
+        items = associate(self.list_components(run_id), assets)
+        profile = ClassifyProfile()
+        classifications = classify_assets(items, profile)
+        names = project_display_names(items, classifications, profile)
+        for item, classification in zip(items, classifications, strict=True):
+            host = hosts.get(item['asset_key'], {})
+            item['project'] = classification.project or host.get('project')
+            item['project_name'] = names.get(classification.project) or host.get('project_name')
+            item['classify_source'] = classification.source if classification.project else ('host' if host.get('project') else None)
+            item['environment'] = item.get('environment') or host.get('env')
+            item['site'] = item.get('site') or host.get('site')
+            item['organization'] = item.get('organization') or host.get('organization')
+            item['citation'] = f"component:{item['key']}@run{item['origin_run_id']}:row{item['row_number']}"
+        return items
 
     def latest_run_id(self) -> int | None:
         row = self.conn.execute("SELECT MAX(id) FROM sync_runs").fetchone()
@@ -194,7 +328,7 @@ class AtlasStore:
 
     def runs(self) -> list[dict[str, Any]]:
         rows = self.conn.execute(
-            "SELECT id, source_name, source_sha256, sheet, header_row, started_at, finished_at, row_count, asset_count, error_count, warning_count FROM sync_runs ORDER BY id"
+            "SELECT id, source_name, source_id, mode, source_sha256, sheet, header_row, started_at, finished_at, row_count, asset_count, error_count, warning_count FROM sync_runs ORDER BY id"
         ).fetchall()
         return [dict(r) for r in rows]
 

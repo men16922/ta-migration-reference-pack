@@ -1,83 +1,32 @@
 # onprem-atlas
 
-ESM 자산관리 엑셀(xlsx)을 SQLite에 동기화하고, 그 DB를 기준으로 **프로젝트 단위 온프렘 구성도(draw.io)** 와
-**AWS 마이그레이션 용량산정 입력**을 만드는 Python 키트입니다. 회사 시스템에 모듈 단위로 떼어 이식하는 것을 전제로 합니다.
+ESM Excel → 출처가 보존되는 SQLite 자산 스냅샷 → IDC/업무 구성도(draw.io)를 만드는 Python 패키지입니다.
+별도 지식 DB와 읽기 전용 Agent 도구를 회사 Python 환경에 이식할 수 있습니다.
 
-용량산정 계산·인스턴스 선정, AI 에이전트, AWS 정책 챗봇, AWS 아키텍처 검토는 **포함하지 않습니다**(이식 대상 시스템에 이미 있음).
-계획: [`../docs/plans/2026-10-21-onprem-asset-kit.md`](../docs/plans/2026-10-21-onprem-asset-kit.md)
+사용 방법은 [운영 가이드](../docs/enterprise-operations.md), 범위는 [제품 계획](../docs/plans/2026-10-21-enterprise-idc-tool.md)을 참고하세요.
 
-## 현재 범위 (P1·P2·P2.5·P3 + 읽기 API)
-
-| 모듈 | 하는 일 | 의존성 |
-|---|---|---|
-| `onprem_atlas.ingest` | xlsx 스트리밍 읽기, 제목 행 건너뛰고 헤더 자동 감지, 한글 동의어 매핑 + 매핑 프로파일, 행 검증 | openpyxl |
-| `onprem_atlas.store` | SQLite: 동기화 실행 이력, 원본 행 보존, 정규화 자산, 이슈, FTS5 trigram 키워드 검색 | 표준 라이브러리 |
-| `onprem_atlas.classify` | 프로젝트 분류: 수동 지정 > 명명 규칙(정규식 이름 그룹) > 시스템명 컬럼(명명 규칙 결과에서 다수결 학습), 공통 인프라 판정 | — |
-| `onprem_atlas.review` | 데이터 품질·이관 준비도 규칙 8종, 프로젝트별 준비도(%) | — |
-| `onprem_atlas.diff` | 동기화 실행 간 추가·삭제·필드 변경 | — |
-| `onprem_atlas.diagram` | IDC 전체(망구분 × 역할 집계)·프로젝트(센터 → 환경 → 망구분 → /24 → 서버) 구성도. 결정적 배치 → 레이아웃 JSON + draw.io XML, 스타일 표 분리 | — |
-| `onprem_atlas.web` | 읽기 전용 API(`/api/summary·projects·assets·review·runs·diff·diagram/idc·diagram/project/{code}`, `?format=drawio`), `create_router()`로 회사 FastAPI에 장착 | fastapi (선택 `[web]`) |
-| `onprem_atlas.synth` | 명명 규칙을 따르는 합성 ESM 엑셀(기본 5,000행, 의도적 오류 포함) + 다음 동기화 시점(drift) | openpyxl |
-| `onprem_atlas.cli` | `inspect` · `import` · `runs` · `search` · `issues` · `classify` · `review` · `diff` · `diagram` · `serve` · `synth` | — |
-
-## 실행
-
-```bash
-cd kit
-uv venv .venv && uv pip install --python .venv/bin/python -e '.[test]'   # 또는 make kit-setup (저장소 루트)
-.venv/bin/onprem-atlas synth --out demo/esm.xlsx                          # 합성 5,000행
-.venv/bin/onprem-atlas inspect demo/esm.xlsx                              # 헤더 매핑·건수·문제 행 번호만 출력(자산 값 없음)
-.venv/bin/onprem-atlas import demo/esm.xlsx --db demo/atlas.db
-.venv/bin/onprem-atlas search erp-was --db demo/atlas.db
-.venv/bin/onprem-atlas issues --db demo/atlas.db --severity error
-.venv/bin/onprem-atlas diagram --db demo/atlas.db --view idc --out demo/idc.drawio          # IDC 전체(집계)
-.venv/bin/onprem-atlas diagram --db demo/atlas.db --project erp --out demo/erp.drawio       # 프로젝트(서버 단위, 60대 넘으면 역할별 집계)
-```
-
-구성도는 5,000건을 개별로 그리지 않습니다. IDC 보기는 센터 × 망구분 × 역할 집계, 프로젝트 보기는 그 프로젝트 서버만 그리고 공통 서비스·IDC 네트워크는 참조 상자로 붙입니다.
-draw.io 파일에는 역할별 아이콘(서버·웹 서버·스토리지·방화벽·로드밸런서·L3 스위치, draw.io 내장 벡터 도형)이 들어가며 `DEFAULT_STYLES["icon"]` 표만 바꾸면 회사 아이콘으로 교체됩니다.
-점선 화살표는 망구분·역할로 **추정한 흐름**입니다. 실제 연결 원천(연결 시트·Zabbix·방화벽 정책)은 아직 없어 TODO입니다.
-
-| IDC 전체 (draw.io에서 연 화면) | 프로젝트 (역할별 집계) |
+| 모듈 | 역할 |
 |---|---|
-| ![IDC](../docs/images/drawio-idc.png) | ![프로젝트 집계](../docs/images/drawio-mes4-agg.png) |
-
-실제 ESM 파일은 사내 PC에서 `inspect`만 먼저 돌려 매핑을 확인하세요. 출력에는 헤더 이름·건수·행 번호만 있어 공유해도 자산 값이 드러나지 않습니다.
-매핑이 틀리면 [`examples/mapping-profile.json`](examples/mapping-profile.json) 형식으로 `--profile`을 지정합니다.
-
-## 콘솔 데모 (합성 5,000건)
+| `components` | WEB/WAS/DB 인스턴스 식별, 호스트 연결, 포트·URL·SID 보존 |
+| `ingest` | xlsx 읽기, 헤더 매핑, ESM 필드 정규화, 검증 |
+| `store` | 원천별 현재 자산을 합친 스냅샷, 원본 행/파일 해시, 이력, FTS 검색, v1/v2→v3 갱신 |
+| `classify` | 명시적 ITSM 업무 계층·환경, 프로파일 분류 |
+| `diagram` | 그룹사/센터·업무 보기, 장비 종류, 기재된 이중화, JSON/draw.io |
+| `diff` | 실행 간 추가·제외·필드 변경 |
+| `web` | 검색·상세·구성도 API, 로컬 업로드/검토/확정, 빌드된 UI 제공 |
+| `knowledge` | 자산과 분리된 문서/버전/출처/그룹 권한·키워드 검색 |
+| `agent_tools` | 회사 Agent용 읽기 도구와 선택적인 Strands 등록 |
+| `backup` | DB와 업로드 원본 백업, 해시/무결성 검증 |
 
 ```bash
-make atlas-demo        # 저장소 루트: 합성 ESM 2회 동기화 → 분류 → API :8770
-npm run dev            # 다른 터미널: Carbon 콘솔 http://127.0.0.1:5173 (/api → :8770 프록시)
+# 저장소 루트에서
+make kit-setup
+make kit
+make atlas
 ```
 
-![대시보드](../docs/images/atlas-dashboard.png)
+일반 등록은 웹의 **Excel 등록**을 사용합니다. CLI `import`의 과거 기본 동작은 하나의 legacy 원천 교체이며 웹의 원천 선택/부분 갱신 흐름과 다릅니다.
+원본 Excel은 최대 20MB(웹), 50,000행·256열입니다. 잘못된 행과 누락 열은 원본 파일을 확인해 보정하고 재검토합니다.
 
-![IDC 구성도](../docs/images/atlas-idc-diagram.png)
-![프로젝트 구성도](../docs/images/atlas-project-diagram.png)
-
-## 분류 프로파일
-
-[`examples/classify-profile.json`](examples/classify-profile.json): `rules`(정규식, `(?P<project>…)` 필수, `env`·`role`·`site` 선택), `shared_codes`(공통 인프라 코드),
-`project_names`(코드 → 표시 이름), `manual`(hostname → 코드), `env_names`. 없으면 합성 데이터 규칙 `<센터2><환경1>-<업무코드>-<역할><순번2>`.
-
-## 표준 필드
-
-`hostname`(키, 대소문자 무시) · `ip` · `asset_tag` · `serial` · `category` · `manufacturer` · `model` · `os` · `cpu_model` · `cpu_sockets` · `cpu_cores` ·
-`memory_gb` · `site` · `rack` · `zone` · `system_name` · `owner` · `status`
-
-- 메모리: `64`, `64GB`, `65536MB`, `1TB` → GB. 단위 없는 16384 초과 값은 MB로 보고 `MEMORY_UNIT_ASSUMED_MB` 경고.
-- CPU 코어: `32`, `2x16` → 정수. IP 여러 개는 첫 번째를 대표로 쓰고 `MULTIPLE_IP` 경고.
-- 이슈 코드(바꾸지 않음): `HOSTNAME_COLUMN_NOT_FOUND`, `PROFILE_COLUMN_NOT_FOUND`, `MISSING_HOSTNAME`, `DUPLICATE_HOSTNAME`(오류) /
-  `MISSING_IP`, `INVALID_IP`, `MULTIPLE_IP`, `DUPLICATE_IP`, `INVALID_NUMBER`, `INVALID_MEMORY`, `MEMORY_UNIT_ASSUMED_MB`(경고).
-
-## SQLite 스키마 (v1)
-
-`sync_runs`(실행: 파일 SHA-256·시트·헤더·매핑·프로파일·건수) · `asset_rows`(원본 행 JSON) · `run_assets`(실행별 정규화 자산) ·
-`asset_issues` · `classify_runs`·`asset_projects`·`project_names`(분류) · `assets`(뷰: 최신 실행) · `assets_fts`(FTS5 trigram, 최신 실행). 동기화는 실행 단위로 쌓여 실행 간 비교가 가능합니다.
-
-## 이식
-
-- `ingest`는 openpyxl만, `store`는 표준 라이브러리만 씁니다. 웹·에이전트 프레임워크를 import하지 않습니다.
-- 테스트: `make kit`(저장소 루트) — ruff + pytest, 합성 데이터만.
+`review` 및 합성 생성기, 기존 CLI는 오프라인 검증/호환을 위해 남아 있습니다. 이관 준비도 점수와 네트워크 실험실은 제품 화면에서 사용하지 않습니다.
+회사 Agent·SSO·Zabbix 실연동, 랙 실장/실제 케이블 구성도는 구현 완료로 표시하지 않습니다.

@@ -7,13 +7,18 @@ import {
   HeaderName,
   Search,
   Theme,
+  Button,
+  Tile,
 } from '@carbon/react';
-import { Api, Asleep, Light } from '@carbon/icons-react';
+import { Asleep, Light } from '@carbon/icons-react';
 import { NAV_ITEMS, navIdOf, type ConsolePage } from './console/nav';
 import { DashboardPage } from './console/pages/DashboardPage';
 import { DiagramPage } from './console/pages/DiagramPage';
-import { AssetsPage, ProjectDetailPage, ProjectsPage, ReviewPageView, SyncPage } from './console/pages/ListPages';
-import { NetworkLab } from './components/NetworkLab';
+import { AssetsPage, ProjectDetailPage, ProjectsPage, SyncPage } from './console/pages/ListPages';
+import { useApi } from './console/api';
+import { ApiGate, PageHeader } from './console/common';
+import { ComponentsPage } from './console/pages/ComponentsPage';
+import { ImportPage } from './console/pages/ImportPage';
 
 /**
  * onprem-atlas 콘솔 — IBM Cloud 콘솔 패턴(어두운 상단바 + 본문을 밀어내는 좌측 내비 + 위젯 대시보드).
@@ -24,8 +29,13 @@ export const App: React.FC = () => {
   const [navOpen, setNavOpen] = useState(true);
   const [theme, setTheme] = useState<'g10' | 'g100'>('g10');
   const [headerQuery, setHeaderQuery] = useState('');
+  const [revision, setRevision] = useState(0);
+  const [diagramDirty, setDiagramDirty] = useState(false);
+  const workspace = useApi<{ has_assets: boolean }>(`/api/workspace?revision=${revision}`);
 
   const go = (next: ConsolePage) => {
+    if (diagramDirty && !window.confirm('저장하지 않은 구성도 편집을 버리고 이동할까요?')) return;
+    setDiagramDirty(false);
     setPage(next);
     document.getElementById('main-content')?.scrollIntoView?.({ block: 'start' });
   };
@@ -52,9 +62,6 @@ export const App: React.FC = () => {
             <Search size="sm" labelText="자산 검색" placeholder="호스트명, IP, 시스템명으로 자산 검색" value={headerQuery} onChange={(e) => setHeaderQuery(e.target.value)} />
           </form>
           <HeaderGlobalBar>
-            <HeaderGlobalAction aria-label="API 문서" tooltipAlignment="end" onClick={() => window.open('/api/docs', '_blank', 'noopener')}>
-              <Api size={20} />
-            </HeaderGlobalAction>
             <HeaderGlobalAction
               aria-label={theme === 'g10' ? '어두운 테마' : '밝은 테마'}
               tooltipAlignment="end"
@@ -93,14 +100,24 @@ export const App: React.FC = () => {
           </nav>
         )}
         <main className="atlas-main" id="main-content">
+          <ApiGate state={workspace}>
+          {(w) => page.id === 'import' ? <ImportPage go={go} onImported={() => setRevision((n) => n + 1)} /> : w.has_assets ? <>
           {page.id === 'dashboard' && <DashboardPage go={go} />}
           {page.id === 'projects' && <ProjectsPage go={go} />}
           {page.id === 'project' && <ProjectDetailPage key={page.code} go={go} code={page.code} />}
-          {page.id === 'diagram' && <DiagramPage key={page.project ?? ''} go={go} project={page.project} />}
+          {page.id === 'diagram' && <DiagramPage key={page.project ?? ''} go={go} project={page.project} onDirty={setDiagramDirty} />}
           {page.id === 'assets' && <AssetsPage key={page.q ?? ''} go={go} initialQuery={page.q} />}
-          {page.id === 'review' && <ReviewPageView key={page.rule ?? ''} go={go} rule={page.rule} />}
+          {page.id === 'components' && <ComponentsPage go={go} />}
           {page.id === 'sync' && <SyncPage go={go} />}
-          {page.id === 'network-lab' && <NetworkLab />}
+          </> : <>
+            <PageHeader title="IDC 자산 관리" subtitle="ESM 자산을 기준으로 IDC와 업무 시스템 구성도를 관리합니다." />
+            <Tile className="atlas-widget">
+              <h2 className="atlas-widget__title">등록된 자산이 없습니다</h2>
+              <p>ESM에서 내려받은 서버·장비 Excel을 등록하면 자산 목록과 구성도를 확인할 수 있습니다.</p>
+              <Button className="atlas-diff-summary" onClick={() => go({ id: 'import' })}>첫 Excel 등록</Button>
+            </Tile>
+          </>}
+          </ApiGate>
         </main>
       </div>
     </Theme>

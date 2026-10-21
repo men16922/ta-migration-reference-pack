@@ -10,3 +10,9 @@ docs/test/history/*-overnight-review-checklist.md
 # 실제 ESM 엑셀·변환 결과는 커밋하지 않음
 fixtures/esm/private/
 *.xlsx
+
+# Company reference captures are local inputs, never public product fixtures.
+sample/
+outputs/
+
+.DS_Store

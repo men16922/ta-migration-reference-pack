@@ -35,6 +35,7 @@ export interface Summary {
   run: RunInfo;
   assets: { total: number; servers: number; network: number; shared: number; unclassified: number };
   projects: number;
+  components?: {total:number; unmatched:number};
   readiness: { percent: number; ready: number; servers: number };
   by_severity: Partial<Record<RuleSummary['severity'], number>>;
   top_rules: RuleSummary[];
@@ -56,6 +57,7 @@ export interface ProjectRow {
   code: string;
   name: string;
   assets: number;
+  components: number;
   envs: string[];
   zones: string[];
   roles: Record<string, number>;
@@ -64,6 +66,9 @@ export interface ProjectRow {
 }
 
 export interface AssetRow {
+  organization?: string | null;
+  category_detail?: string | null;
+  os_version?: string | null;
   key: string;
   hostname: string;
   ip: string | null;
@@ -85,21 +90,8 @@ export interface AssetRow {
   classify_source: string | null;
 }
 
-export interface Finding {
-  rule: string;
-  severity: RuleSummary['severity'];
-  key: string;
-  hostname: string;
-  project: string | null;
-  detail: string;
-}
-
-export interface ReviewPage extends Page<Finding> {
-  rules: RuleSummary[];
-  by_severity: Summary['by_severity'];
-}
-
 export interface DiffResult {
+  components?: Omit<DiffResult, 'before' | 'after' | 'components'>;
   before: number;
   after: number;
   changed_fields: Record<string, number>;
@@ -112,7 +104,7 @@ export interface DiffResult {
 export interface DiagramBox {
   id: string;
   parent: string | null;
-  kind: 'title' | 'site' | 'env' | 'zone' | 'subnet' | 'band' | 'node' | 'agg';
+  kind: 'title' | 'site' | 'env' | 'zone' | 'subnet' | 'band' | 'tier' | 'node' | 'agg';
   label: string;
   sublabel: string;
   style: string;
@@ -122,6 +114,7 @@ export interface DiagramBox {
   w: number;
   h: number;
   meta: {
+    record_type?: string; product?: string; product_version?: string; port?: string; url?: string; sid?: string; match_status?: string; citation?: string;
     hostname?: string;
     ip?: string | null;
     os?: string | null;
@@ -141,7 +134,7 @@ export interface DiagramLayout {
   height: number;
   stats: { view: 'idc' | 'project'; assets: number; servers: number; shown?: number; aggregated: boolean; sites: string[]; project?: string; name?: string };
   boxes: DiagramBox[];
-  edges: Array<{ id: string; source: string; target: string; label: string; kind: 'inferred' | 'link'; points: Array<[number, number]> }>;
+  edges: Array<{ id: string; source: string; target: string; label: string; kind: 'inferred' | 'link' | 'declared'; points: Array<[number, number]> }>;
   legend: Array<{ style: string; label: string; color: string }>;
   notes: string[];
 }
@@ -162,9 +155,10 @@ export interface ApiState<T> {
   loading: boolean;
 }
 
-export function useApi<T>(url: string): ApiState<T> {
+export function useApi<T>(url: string | null): ApiState<T> {
   const [state, setState] = useState<ApiState<T>>({ loading: true });
   useEffect(() => {
+    if (!url) { setState({ loading: false }); return; }
     let alive = true;
     setState((prev) => ({ ...prev, loading: true }));
     fetch(url)

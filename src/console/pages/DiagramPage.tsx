@@ -1,13 +1,15 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Button, ComboBox, ContentSwitcher, IconButton, InlineNotification, Switch, Tag } from '@carbon/react';
-import { Download, FitToScreen, ZoomIn, ZoomOut } from '@carbon/icons-react';
+import { Download, FitToScreen, ZoomIn, ZoomOut, BareMetalServer, StoragePool, Firewall, Security, Network_3, DataBackup, ApplicationWeb, Application, Db2Database } from '@carbon/icons-react';
 import { apiPath, fmt, type DiagramBox, type DiagramLayout, type Page, type ProjectRow, useApi } from '../api';
 import { ApiGate, PageHeader } from '../common';
+import { DrawioEditor } from '../DrawioEditor';
 import type { ConsolePage } from '../nav';
 
 type Go = (page: ConsolePage) => void;
 
-const CONTAINERS = new Set(['site', 'env', 'zone', 'subnet', 'band']);
+const CONTAINERS = new Set(['site', 'env', 'zone', 'subnet', 'band', 'tier']);
+const roleIcon = (style:string) => style === 'role:web' ? ApplicationWeb : style === 'role:was' ? Application : style === 'role:db' ? Db2Database : style === 'net:storage' ? StoragePool : style === 'net:backup' ? DataBackup : style === 'net:fw' ? Firewall : style === 'net:security' ? Security : style.startsWith('net:') ? Network_3 : BareMetalServer;
 
 /** 대략적인 글자 폭(12px 기준)으로 상자 안에 들어가게 자른다. 전체 값은 <title>과 상세 패널에 있다. */
 function clip(text: string, px: number, size = 12): string {
@@ -45,14 +47,15 @@ const DiagramSvg: React.FC<{ layout: DiagramLayout; zoom: number; selected?: str
       if (CONTAINERS.has(b.kind)) {
         return (
           <g key={b.id}>
-            <rect x={b.x} y={b.y} width={b.w} height={b.h} className={`atlas-dg-box atlas-dg-${b.kind}`} style={b.kind === 'zone' && b.color ? { stroke: b.color } : undefined} />
+            <rect x={b.x} y={b.y} width={b.w} height={b.h} className={`atlas-dg-box atlas-dg-${b.kind}`} style={(b.kind === 'zone' || b.kind === 'tier') && b.color ? { stroke: b.color } : undefined} />
             {b.kind === 'zone' && b.color && <rect x={b.x} y={b.y} width={b.w} height={3} fill={b.color} />}
             <text x={b.x + 10} y={b.y + 19} className={`atlas-dg-label atlas-dg-label--${b.kind}`}>{clip(b.label, b.w - 20, 13)}</text>
-            {b.sublabel && <text x={b.x + 10} y={b.y + 35} className="atlas-dg-sub">{clip(b.sublabel, b.w - 20, 11)}</text>}
+            {b.sublabel && <text x={b.x + 10} y={b.y + 35} className="atlas-dg-sub">{clip(b.sublabel, b.w - 44, 11)}</text>}
           </g>
         );
       }
       const isSel = selected === b.id;
+      const Icon = roleIcon(b.style);
       return (
         <g
           key={b.id}
@@ -65,9 +68,9 @@ const DiagramSvg: React.FC<{ layout: DiagramLayout; zoom: number; selected?: str
         >
           <title>{b.sublabel ? `${b.label}\n${b.sublabel}` : b.label}</title>
           <rect x={b.x} y={b.y} width={b.w} height={b.h} className="atlas-dg-card" />
-          <rect x={b.x} y={b.y} width={4} height={b.h} fill={b.color ?? 'currentColor'} />
-          <text x={b.x + 12} y={b.y + (b.sublabel ? 20 : b.h / 2 + 4)} className="atlas-dg-node-label">{clip(b.label, b.w - 20)}</text>
-          {b.sublabel && <text x={b.x + 12} y={b.y + 36} className="atlas-dg-sub">{clip(b.sublabel, b.w - 20, 11)}</text>}
+          <g transform={`translate(${b.x + 10},${b.y + 14})`} style={{ color: b.color ?? 'currentColor' }}><Icon size={20} /></g>
+          <text x={b.x + 38} y={b.y + (b.sublabel ? 20 : b.h / 2 + 4)} className="atlas-dg-node-label">{clip(b.label, b.w - 44)}</text>
+          {b.sublabel && b.sublabel.split('\n').slice(0,3).map((line,i)=><text key={i} x={b.x + 38} y={b.y + 36 + i*17} className="atlas-dg-sub">{clip(line, b.w - 44, 11)}</text>)}
         </g>
       );
     })}
@@ -75,7 +78,7 @@ const DiagramSvg: React.FC<{ layout: DiagramLayout; zoom: number; selected?: str
       const [p0, p1] = e.points;
       return (
         <g key={e.id}>
-          <polyline points={e.points.map((p) => p.join(',')).join(' ')} className={`atlas-dg-edge atlas-dg-edge--${e.kind}`} markerEnd="url(#atlas-dg-arrow)" />
+          <polyline points={e.points.map((p) => p.join(',')).join(' ')} className={`atlas-dg-edge atlas-dg-edge--${e.kind}`} markerEnd={e.kind === 'declared' ? undefined : 'url(#atlas-dg-arrow)'} />
           {e.label && p0 && p1 && (
             <text x={(p0[0] + p1[0]) / 2} y={(p0[1] + p1[1]) / 2 - 5} textAnchor="middle" className="atlas-dg-sub">{e.label}</text>
           )}
@@ -88,7 +91,7 @@ const DiagramSvg: React.FC<{ layout: DiagramLayout; zoom: number; selected?: str
 const Detail: React.FC<{ box: DiagramBox; go: Go }> = ({ box, go }) => {
   const m = box.meta;
   const rows: Array<[string, React.ReactNode]> =
-    m.count != null
+    m.record_type === 'component' ? [['제품', m.product ?? box.label], ['버전', m.product_version ?? '-'], ['PORT', m.port ?? '-'], ['URL / SID', m.url || m.sid || '-'], ['서버 연결', m.match_status ?? '-'], ['출처', m.citation ?? '-']] : m.count != null
       ? [
           ['자산 수', `${fmt(m.count)}대`],
           ['코어 합계', fmt(m.cpu_cores ?? null)],
@@ -160,12 +163,12 @@ export const DiagramView: React.FC<{ path: string; drawioPath: string; go: Go }>
         <section className="atlas-dg-panel">
           <div className="atlas-dg-toolbar">
             <div className="atlas-tags">
-              {d.legend.map((l) => (
+              {d.legend.map((l) => { const Icon = roleIcon(l.style); return (
                 <span key={l.style} className="atlas-dg-legend">
-                  <span className="atlas-dg-legend__swatch" style={{ background: l.color }} />
+                  <Icon size={16} />
                   {l.label}
                 </span>
-              ))}
+              );})}
               {d.stats.aggregated && d.stats.view === 'project' && <Tag size="sm" type="warm-gray">서버 {fmt(d.stats.servers)}대 — 역할별 집계</Tag>}
             </div>
             <div className="atlas-dg-toolbar__actions">
@@ -199,7 +202,8 @@ export const DiagramView: React.FC<{ path: string; drawioPath: string; go: Go }>
   );
 };
 
-export const DiagramPage: React.FC<{ go: Go; project?: string }> = ({ go, project: initial }) => {
+export const DiagramPage: React.FC<{ go: Go; project?: string; onDirty?:(dirty:boolean)=>void }> = ({ go, project: initial, onDirty }) => {
+  const [editing, setEditing] = useState(false);
   const [project, setProject] = useState<string | undefined>(initial);
   const projects = useApi<Page<ProjectRow>>(apiPath('projects', { page_size: 200 }));
   const items = useMemo(() => projects.data?.items ?? [], [projects.data]);
@@ -211,33 +215,34 @@ export const DiagramPage: React.FC<{ go: Go; project?: string }> = ({ go, projec
     <>
       <PageHeader
         crumbs={[{ label: '대시보드', onClick: () => go({ id: 'dashboard' }) }]}
-        title="구성도"
-        subtitle="ESM 자산으로 그린 온프렘 현행 구성도. IDC 전체는 역할별 집계, 프로젝트는 서버 단위로 그립니다."
+        title={project ? `${chosen?.name ?? '업무 시스템'} 구성도` : 'IDC 전체 구성도'}
+        subtitle="센터별 네트워크·공통 장비와 WEB·WAS·DB 배치를 표시합니다. 망 구획과 통신 연결은 draw.io에서 보완할 수 있습니다."
       />
-      <div className="atlas-dg-picker">
+      {!editing && <div className="atlas-dg-picker">
+        <Button onClick={()=>setEditing(true)}>draw.io에서 직접 편집</Button>
         <ContentSwitcher
           size="md"
           selectedIndex={mode}
           onChange={({ index }: { index?: number }) => setProject(index === 1 ? (project ?? items[0]?.code) : undefined)}
         >
           <Switch name="idc" text="IDC 전체" />
-          <Switch name="project" text="프로젝트" disabled={items.length === 0} />
+          <Switch name="project" text="업무 시스템" disabled={items.length === 0} />
         </ContentSwitcher>
         {mode === 1 && (
           <ComboBox
             id="atlas-dg-project"
             titleText=""
-            aria-label="프로젝트 선택"
-            placeholder="프로젝트 코드·이름"
+            aria-label="업무 시스템 선택"
+            placeholder="업무 시스템 코드·이름"
             items={items}
             selectedItem={chosen ?? null}
-            itemToString={(p: ProjectRow | null) => (p ? `${p.name} (${p.code}) · ${p.assets}대` : '')}
+            itemToString={(p: ProjectRow | null) => (p ? `${p.name} · ${p.assets}대` : '')}
             onChange={({ selectedItem }: { selectedItem?: ProjectRow | null }) => selectedItem && setProject(selectedItem.code)}
           />
         )}
-      </div>
-      {projects.error && <InlineNotification kind="error" lowContrast hideCloseButton title="프로젝트 목록을 불러오지 못했습니다" subtitle={projects.error} />}
-      <DiagramView key={base} path={apiPath(base)} drawioPath={apiPath(base, { format: 'drawio' })} go={go} />
+      </div>}
+      {projects.error && <InlineNotification kind="error" lowContrast hideCloseButton title="업무 시스템 목록을 불러오지 못했습니다" subtitle={projects.error} />}
+      {editing ? <DrawioEditor key={base} project={project} onDirty={onDirty} close={()=>setEditing(false)} /> : <DiagramView key={base} path={apiPath(base)} drawioPath={apiPath(base, { format: 'drawio' })} go={go} />}
     </>
   );
 };

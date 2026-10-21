@@ -2,7 +2,7 @@ import React from 'react';
 import { Button, ClickableTile, Column, Grid, ProgressBar, Tag, Tile } from '@carbon/react';
 import { ArrowRight } from '@carbon/icons-react';
 import { apiPath, fmt, fmtTime, type Page, type ProjectRow, type Summary, useApi } from '../api';
-import { ApiGate, PageHeader, SeverityTag, SimpleTable } from '../common';
+import { ApiGate, PageHeader, SimpleTable } from '../common';
 import type { ConsolePage } from '../nav';
 
 const Kpi: React.FC<{ label: string; value: string; detail?: React.ReactNode; onClick?: () => void }> = ({ label, value, detail, onClick }) => {
@@ -26,7 +26,7 @@ const Distribution: React.FC<{ title: string; items: Array<[string, number]>; to
   <Tile className="atlas-widget">
     <h2 className="atlas-widget__title">{title}</h2>
     {items.slice(0, limit).map(([label, n]) => (
-      <ProgressBar key={label} className="atlas-dist" label={label} helperText={`${fmt(n)}대 · ${Math.round((100 * n) / total)}%`} value={n} max={total} size="small" />
+      <ProgressBar key={label} className="atlas-dist" label={label} helperText={`${fmt(n)}대 · ${total ? Math.round((100 * n) / total) : 0}%`} value={n} max={total || 1} size="small" />
     ))}
   </Tile>
 );
@@ -43,12 +43,12 @@ export const DashboardPage: React.FC<{ go: (page: ConsolePage) => void }> = ({ g
             title="대시보드"
             subtitle={
               <>
-                최근 동기화 <strong>#{s.run.id}</strong> · {s.run.source_name} / {s.run.sheet} · {fmtTime(s.run.finished_at)}
+                최근 Excel 등록 <strong>#{s.run.id}</strong> · {s.run.source_name} / {s.run.sheet} · {fmtTime(s.run.finished_at)}
               </>
             }
             actions={
-              <Button kind="tertiary" size="md" renderIcon={ArrowRight} onClick={() => go({ id: 'sync' })}>
-                동기화 이력
+              <Button kind="primary" size="md" renderIcon={ArrowRight} onClick={() => go({ id: 'diagram' })}>
+                IDC 구성도 열기
               </Button>
             }
           />
@@ -57,13 +57,13 @@ export const DashboardPage: React.FC<{ go: (page: ConsolePage) => void }> = ({ g
               <Kpi
                 label="자산"
                 value={fmt(s.assets.total)}
-                detail={`서버 ${fmt(s.assets.servers)} · 네트워크 ${fmt(s.assets.network)} · 공통 인프라 ${fmt(s.assets.shared)}`}
+                detail="최근 등록한 자산 목록 기준"
                 onClick={() => go({ id: 'assets' })}
               />
             </Column>
             <Column sm={4} md={4} lg={4}>
               <Kpi
-                label="프로젝트"
+                label="업무 시스템"
                 value={fmt(s.projects)}
                 detail={
                   s.assets.unclassified ? <Tag type="red" size="sm">미분류 자산 {fmt(s.assets.unclassified)}</Tag> : <Tag type="green" size="sm">전체 분류됨</Tag>
@@ -73,10 +73,10 @@ export const DashboardPage: React.FC<{ go: (page: ConsolePage) => void }> = ({ g
             </Column>
             <Column sm={4} md={4} lg={4}>
               <Kpi
-                label="이관 준비도"
-                value={`${s.readiness.percent}%`}
-                detail={<ProgressBar label="준비된 서버" hideLabel value={s.readiness.ready} max={s.readiness.servers} size="small" helperText={`서버 ${fmt(s.readiness.ready)} / ${fmt(s.readiness.servers)} (높음 이슈 없음)`} />}
-                onClick={() => go({ id: 'review' })}
+                label="WEB · WAS · DB"
+                value={fmt(s.components?.total ?? 0)}
+                detail={`소프트웨어 인스턴스 · 서버 연결 미확인 ${s.components?.unmatched ?? 0}건`}
+                onClick={() => go({ id: 'components' })}
               />
             </Column>
             <Column sm={4} md={4} lg={4}>
@@ -91,7 +91,7 @@ export const DashboardPage: React.FC<{ go: (page: ConsolePage) => void }> = ({ g
                       <Tag type="blue" size="sm">변경 {fmt(s.last_diff.changed)}</Tag>
                     </span>
                   ) : (
-                    '비교할 이전 동기화가 없습니다.'
+                    '비교할 이전 등록 이력이 없습니다.'
                   )
                 }
                 onClick={() => go({ id: 'sync' })}
@@ -100,39 +100,16 @@ export const DashboardPage: React.FC<{ go: (page: ConsolePage) => void }> = ({ g
 
             <Column sm={4} md={8} lg={10}>
               <Tile className="atlas-widget atlas-widget--table">
-                <SimpleTable
-                  title="주요 검토 항목"
-                  description="이관·용량산정 전에 정리할 데이터 품질 이슈"
-                  size="sm"
-                  columns={[
-                    { key: 'sev', header: '심각도', render: (r) => <SeverityTag severity={r.severity} /> },
-                    { key: 'title', header: '항목', render: (r) => r.title },
-                    { key: 'count', header: '자산', render: (r) => fmt(r.count) },
-                    { key: 'rec', header: '조치', render: (r) => <span className="atlas-muted">{r.recommendation}</span> },
-                  ]}
-                  rows={s.top_rules}
-                  rowKey={(r) => r.rule}
-                  onRowClick={(r) => go({ id: 'review', rule: r.rule })}
-                />
-              </Tile>
-            </Column>
-            <Column sm={4} md={8} lg={6}>
-              <Distribution title="망구분" items={s.zones} total={s.assets.total} />
-            </Column>
-
-            <Column sm={4} md={8} lg={10}>
-              <Tile className="atlas-widget atlas-widget--table">
                 <ApiGate state={projects}>
                   {(p) => (
                     <SimpleTable
-                      title="자산이 많은 프로젝트"
-                      description={`전체 ${fmt(p.total)}개 프로젝트 중 상위`}
+                      title="업무별 자산"
+                      description={`전체 ${fmt(p.total)}개 업무 시스템 · 항목을 선택하면 구성도를 엽니다.`}
                       size="sm"
                       columns={[
-                        { key: 'name', header: '프로젝트', render: (r) => <><strong>{r.name}</strong> <span className="atlas-muted">({r.code})</span></> },
+                        { key: 'name', header: '업무 시스템', render: (r) => <strong>{r.name}</strong> },
                         { key: 'assets', header: '자산', render: (r) => fmt(r.assets) },
                         { key: 'envs', header: '환경', render: (r) => r.envs.join(' · ') },
-                        { key: 'ready', header: '준비도', render: (r) => `${r.readiness}%` },
                       ]}
                       rows={p.items}
                       rowKey={(r) => r.code}
@@ -142,11 +119,8 @@ export const DashboardPage: React.FC<{ go: (page: ConsolePage) => void }> = ({ g
                 </ApiGate>
               </Tile>
             </Column>
-            <Column sm={4} md={4} lg={3}>
-              <Distribution title="환경" items={s.envs} total={s.assets.total} />
-            </Column>
-            <Column sm={4} md={4} lg={3}>
-              <Distribution title="센터" items={s.sites} total={s.assets.total} />
+            <Column sm={4} md={8} lg={6}>
+              <Distribution title="센터별 자산" items={s.sites} total={s.assets.total} />
             </Column>
           </Grid>
         </>

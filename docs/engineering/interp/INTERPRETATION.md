@@ -1,37 +1,36 @@
-# Engineering Interpretation — TA Migration Lab
+# Engineering Interpretation — Onprem Atlas
 
-This document maps the **general concepts (Bibles)** to the **actual files, commands, and mechanisms of this repository**. The bibles (`*_ENGINEERING.md`) live in the overnight-harness plugin under `templates/docs/engineering/` (`make overnight-where` prints the plugin root); they are not vendored here unless `harness-init.sh --with-bibles` was used.
+현재 제품의 구현 위치와 검증 기준이다. 일반 engineering bible은 overnight-harness 플러그인에 있고 저장소에 복제하지 않는다.
 
-## HARNESS — Maturity/Verification/Permissions (Bible `HARNESS_ENGINEERING.md`)
-- gate (verification): `make check` (`doc-budget` + `lint` + `typecheck` + `test` + `build` in `Makefile`, matching `.claude/harness-config.json`)
-- permission boundary: `scripts/overnight/overnight-settings.json`, `.codex/rules/overnight.rules`, `scripts/overnight/opencode.json`, `scripts/overnight/antigravity-settings.snippet.json` (allow=offline gate/test/build targets; deny=network, deploy, dev servers, AWS/Terraform, Docker/Containerlab execution)
-- current maturity / next investment: Reference pack + 12 fixture specifications verified offline; next investment is P0 `@containerlab/clab-viewer` read-only embedding spike and deterministic semantic model unit tests (P1).
+## 읽는 순서와 기준 문서
 
-## LOOP — Unattended Loop (Bible `LOOP_ENGINEERING.md`)
-- runner: resolved via `HARNESS_ROOT` from plugin (`make overnight` / `make overnight-once`). env: `ENGINE`/`GATE_CMD`/`MAX_ITER`/`PAUSE`.
-- backlog tags: `[auto]`/`[manual]`/`[blocked]` in `docs/NEXT_PLAN.md`
-- iteration prompt: plugin default (`scripts/overnight/PROMPT.md` optional override)
-- skills: `/sync` `/checkpoint` `/overnight-report` `/overnight-seed` `/diagnose` (provided by plugin)
+`docs/AGENT_BRIEF.md` → `docs/STATUS.md` → `docs/NEXT_PLAN.md` → `docs/PROGRESS_LOG.md` → `docs/LESSONS.md`.
+제품 범위는 `docs/plans/2026-10-21-enterprise-idc-tool.md`, 사용법·데이터 계약은 `docs/enterprise-operations.md`, 인수 평가는 `docs/evaluation.md`가 담당한다.
+`docs/archive/`는 과거 기록이며 현재 실행 지침이 아니다. brief ≤60, status/plan/log ≤120, lessons ≤40줄을 `make doc-budget`으로 확인한다.
 
-## VERIFICATION — 3 Layers (Bible `VERIFICATION_ENGINEERING.md`)
-- mechanical (gate): `make check` — proves entry-doc line budgets, reference pack & fixture specification integrity (T01–T12), and project lint/typecheck/unit-tests/build when `package.json` is present.
-- semantic (critic): `OVERNIGHT_CRITIC=auto` · prompt: `scripts/overnight/CRITIC_PROMPT.md` (optional override from `CRITIC_PROMPT.example.md`)
-  - this repo's domain invariants ("green but wrong"):
-    1. Semantic topology model must stay decoupled from visual coordinates (moving UI nodes must not change semantic hash or analysis verdict — T08).
-    2. Separate `networkOutcome` (`reachable` / `blocked` / `unknown`) from `intentVerdict` (`pass` / `fail` / `unknown`); a required `deny` policy that blocks traffic is `blocked` + `pass` (T05).
-    3. Distinguish missing route in a declared-complete table (`NO_ROUTE` -> `blocked`) from uncollected data or unsupported features like NAT/VRF/PBR (`unknown`, never flattened or assumed pass — T06, T07, T12).
-    4. AWS migration intent comparison binds to logical workload IDs (`app`, `db`), not raw IP strings (T11).
-- creative (human): `[manual]` criteria = interactive topology viewer UX/layout feel, live Linux containerlab runner integration, external Batfish container execution, and AWS migration review prose quality · morning-review focus = verify no unsupported network features were silently coerced to `reachable`/`pass`, and check trace step provenance.
+## 구현 경계
 
-## AGENTIC — Multi-Agent (Bible `AGENTIC_ENGINEERING.md`)
-- currently single engine per run (`ENGINE=claude|codex|opencode|agy|kiro`), with optional actor + critic separation via model routing in `Makefile`.
+- `src/console`: Carbon UI, Excel 검토/등록, 자산·인스턴스 조회, 구성도, 변경 이력.
+- `useDrawioDocument.ts`: 로컬 iframe 메시지 검증과 편집본 저장 상태. `DrawioEditor.tsx`: 화면 표시.
+- `kit/src/onprem_atlas/ingest`, `web/imports.py`, `store`: Excel 정규화, 원천별 스냅샷과 출처, 원자적 등록.
+- `components.py`: WEB/WAS/DB 식별과 호스트 연결. `diagram/model.py`·`inventory.py`·`enterprise.py`: 도형 모델·장비 분류·업무 배치. `diagram/__init__.py`: 레이아웃·출력 진입점.
+- `web/documents.py`: 원천과 분리된 도면 버전. `knowledge.py`, `agent_tools.py`: 별도 지식 저장소와 읽기 도구.
+- `backup.py`: SQLite와 등록 원본의 휴대 가능한 백업·검증.
 
-## CONTEXT — Context/Doc Discipline (Bible `CONTEXT_ENGINEERING.md`)
-- entry point/Read Path: `docs/AGENT_BRIEF.md` → `docs/STATUS.md` → `docs/NEXT_PLAN.md` → `docs/PROGRESS_LOG.md` → `docs/LESSONS.md`
-- line budget: brief ≤60 · status/plan/log ≤120 · lessons ≤40 (`.claude/harness-config.json`, enforced by `make doc-budget`)
-- Resume Pointer: `▶ NEXT SESSION` line at the top of `docs/AGENT_BRIEF.md`
-- archive: `docs/archive/`
+## 검증
 
-## PROMPT — Prompt Layer (Bible `PROMPT_ENGINEERING.md`)
-- harness prompt: plugin default (`scripts/overnight/PROMPT.md` if overridden)
-- runtime/domain prompt: N/A (analysis engine is strictly deterministic code; AI in future phases is restricted to drafting explanations/change proposals and never judges reachability)
+`make check`: 문서 예산/현행 문서 링크, TypeScript, Vitest, Python ruff/pytest, Vite build. 자동 검증은 합성 입력만 사용한다.
+
+검토 불변 조건:
+1. 한 원천의 갱신·교체가 다른 원천을 지우지 않는다. 실패한 등록은 분류와 토큰까지 되돌린다.
+2. 인스턴스 수와 서버 대수를 혼동하지 않고 모호한 호스트 연결은 미확인으로 남긴다.
+3. IP·계층·Active/Standby 문자열만으로 망 구획, 통신 성공, 이중화 관계를 생성하지 않는다.
+4. 자산 갱신이 수동 도면을 덮어쓰지 않고, 저장 중 새 편집의 미저장 상태를 보존한다.
+5. Agent 결과는 출처를 포함하고 허용된 지식 그룹·자산 DB 범위를 벗어나지 않는다.
+
+Chrome 확인은 실제 화면의 등록·검색·구성도·편집 흐름을 보완한다. 회사 Excel/권한/SSO/실모델 검증은 로컬 테스트와 별개다.
+
+## Harness
+
+`Makefile`이 설치된 플러그인의 runner를 찾는다. `.claude/harness-config.json`, `scripts/overnight/*`, `.codex/rules/overnight.rules`의 기존 권한 경계를 유지한다.
+현재 단일 엔진 실행이며 이 작업에서 자동 루프·다중 에이전트·외부 배포·모델 호출은 실행하지 않았다.

@@ -12,7 +12,7 @@ if TYPE_CHECKING:
 COMPARED = tuple(f for f in FIELDS if f != "hostname")
 
 
-def diff_assets(before: list[dict[str, Any]], after: list[dict[str, Any]]) -> dict[str, Any]:
+def diff_assets(before: list[dict[str, Any]], after: list[dict[str, Any]], compared: tuple[str, ...] = COMPARED) -> dict[str, Any]:
     a = {r["key"]: r for r in before}
     b = {r["key"]: r for r in after}
     added = sorted(b.keys() - a.keys())
@@ -20,7 +20,7 @@ def diff_assets(before: list[dict[str, Any]], after: list[dict[str, Any]]) -> di
     changed: list[dict[str, Any]] = []
     field_counts: dict[str, int] = {}
     for key in sorted(a.keys() & b.keys()):
-        fields = {f: {"before": a[key].get(f), "after": b[key].get(f)} for f in COMPARED if a[key].get(f) != b[key].get(f)}
+        fields = {f: {"before": a[key].get(f), "after": b[key].get(f)} for f in compared if a[key].get(f) != b[key].get(f)}
         if fields:
             changed.append({"key": key, "hostname": b[key].get("hostname"), "fields": fields})
             for f in fields:
@@ -45,4 +45,7 @@ def diff_runs(store: AtlasStore, before: int | None = None, after: int | None = 
     if before is None or after is None:
         raise ValueError("비교할 동기화 실행이 두 개 이상 필요합니다.")
     result = diff_assets(store.list_assets(before, limit=1_000_000), store.list_assets(after, limit=1_000_000))
-    return {"before": before, "after": after, **result}
+    from ..components import COMPONENT_FIELDS
+
+    components = diff_assets(store.list_components(before), store.list_components(after), COMPONENT_FIELDS)
+    return {"before": before, "after": after, **result, "components": components}

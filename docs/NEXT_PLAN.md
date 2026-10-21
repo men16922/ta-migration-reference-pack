@@ -1,39 +1,33 @@
 # Next Plan
 
-Last Updated: 2026-10-21
+Last Updated: 2026-10-22
 
-Rolling plan containing open work (things to do) only. Completed history is in `docs/COMPLETED_SUMMARY.md`.
+Authority: `docs/plans/2026-10-21-enterprise-idc-tool.md`. User direction supersedes assistant-first P8 and the old FPMS/AWS simulator roadmap.
 
-## Priority 0 — Completed P0–P4 Enterprise Platform Overhaul (`T01`–`T12` + v2.0 Studio All Green)
+## Priority 1 — Enterprise acceptance
 
-All P1 (Semantic Model & Deterministic Engine), P0 (REA Reverse-Engineered 3-Mode Topology Studio & Containerlab YAML/Annotation Adapter), P2 (Offline Batfish Fixture Evaluator), P3 (AWS Migration As-Is vs To-Be Intent Studio), P4 (Forward Predict What-If Mutator, IP Fabric Diagnostic Continue Mode, AlgoSec AppViz Multi-Intent Matrix, and Offline Config Importer), and Google Cloud Zero-VM deployment configurations are implemented and verified via `make check` (5 test files, 24/24 tests passing).
+- [ ] [manual] First acceptance action: preview an approved real/anonymized ESM workbook in a separate DB, check sheet/header mappings and export filters before import. Cover server/equipment/security/WEB/WAS/DB sources; confirm group/site/hostname vs asset ID/serial, host renames and endpoint identity. Company workbook input is still missing.
+- [ ] [manual] Confirm organization-scoped source catalogs before enabling full replacement for separately managed company/center exports.
+- [ ] [manual] Connect company Agent: `AssetKnowledgeTools` + existing Strands registration or HTTP endpoint. Validate real-model citations and scope handling using approved data; no paid calls without authorization.
+- [ ] [manual] Bind company SSO/roles and audit identity before any shared deployment. Current app is local/loopback only.
 
-## Priority 1 — On-Prem Asset Kit (`docs/plans/2026-10-21-onprem-asset-kit.md`)
+## Priority 2 — Evidence-driven extensions
 
-Python `kit/` package `onprem-atlas` (done 2026-10-21: P1 ingest/store/CLI, P2 diff + readiness review, P2.5 project classification, read-only FastAPI, P7 console shell + dashboard): ESM xlsx → SQLite → on-prem draw.io diagrams + sizing input export. No agent, policy chatbot, AWS review, or sizing math (company already has them).
+- [ ] [manual] Prioritize remaining UX/data gaps from `docs/evaluation.md`: no-change upload skipping/retention, raw-only security-field diffs, manual drawing update comparison.
 
-- [ ] [manual] P0 decide K2–K6 (real ESM headers, sizing input contract, draw.io spec, utilization source, project naming rules). K1 done: `onprem-atlas` in `kit/`.
-- [x] [auto] P3 IDC + project deterministic layout + draw.io XML + console 구성도 page (2026-10-21). Remaining TODO: `focus` view, real relationship source (connection sheet / firewall policy / Zabbix) to replace inferred tier arrows.
-- [ ] [auto] P4 sizing bridge (export input, import results, To-Be labels) — after K3.
-- [ ] [auto] P5 agent tool functions + optional Strands adapter.
-- [ ] [auto] P6 `docs/wiki` + `llms.txt` + L0–L4 porting cards.
-- [ ] [auto] P7 remainder: header search suggestions, asset detail side panel (project diagram page done). Shell, dashboard, projects, assets, review, sync pages done.
-- [ ] [auto] P8 Gemini/Copilot-style docked assistant panel + SSE contract + reference Strands agent (no MCP).
+- [ ] [manual] Validate company naming/notation against the monochrome IDC/business drawings. Firewall/zone/communication can already be drawn manually; confirmed subnet/connection/rack records remain necessary only for verified physical/rack/port views.
+- [ ] [manual] Confirm ESM CPU/memory/disk performance export or Zabbix API permissions. Store metrics separately with period/statistic/unit/source; do not derive p95 from daily averages.
+- [ ] [manual] Confirm company sizing input contract only when sizing export is requested; no duplicate sizing engine.
 
-Superseded for this scope: §0.3 TF1–TF8 of `docs/plans/2026-10-21-operator-console-redesign.md`.
+## Product boundary
 
-## Optional Future Backlog
-
-- [ ] [manual] Deploy static bundle (`dist/`) to Firebase Hosting or scale-to-zero Google Cloud Run in target GCP project (`docs/gcp-cost-minimal-architecture.md`).
+- Main workflow: Excel registration → asset verification → IDC/business diagrams → change history.
+- Knowledge is separate, versioned and searched through the company AI Agent. Agent tools are read-only and return source citations.
+- No network-lab navigation, firewall automatic remediation, policy audit, AWS migration simulation or arbitrary readiness score in the product.
+- Local core and browser/backup validation results live in STATUS/PROGRESS_LOG; do not seed the operational database with fixtures.
 
 ## Rules
 
-- Read `docs/AGENT_BRIEF.md` → `docs/status.md` → this file in order before starting work.
-- Design snapshots for large tasks live in `docs/plans/YYYY-MM-DD-<topic>.md`.
-
-### Automation Tags (for overnight loop)
-
-- `[auto]` — Only for items verifiable via local, deterministic, offline gate (`make check`).
-- `[manual]` — Requires human judgment, feel, or external service. Skipped by the unattended loop.
-- `[blocked]` — Unmet dependencies or 2 accumulated Blockers (runner marks automatically). Lift after human review.
-- **No Tag = Not for unattended run** (security default). The runner only consumes `[auto]`.
+- `[auto]`: locally deterministic work with a concrete input and acceptance condition.
+- `[manual]`: company input, access or deployment decision required. Do not assume approval from elapsed time.
+- Commit/push/publication require existing explicit authorization.

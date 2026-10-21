@@ -19,7 +19,8 @@ SEVERITY_ORDER = {"high": 0, "medium": 1, "low": 2, "info": 3}
 
 # 이관 시 OS 업그레이드·재플랫폼이 필요한 지원 종료 OS (프로파일로 바꿀 수 있게 상수로 분리)
 EOS_OS_PATTERNS = [r"centos", r"rhel\s*[5-7]\b", r"windows server 20(03|08|12)", r"aix\s*[5-6]\.", r"solaris\s*(9|10)\b"]
-NETWORK_CATEGORY = re.compile(r"네트워크|보안장비|방화벽|스위치|라우터|l4|network|firewall|switch", re.IGNORECASE)
+SECURITY_CATEGORY = re.compile(r"보안\s*장비|방화벽|악성코드|이상징후|바이패스|firewall|security|anti[- ]?(?:ddos|spam)|\b(?:nac|ips|ids|waf|utm|fw)\b", re.IGNORECASE)
+NETWORK_CATEGORY = re.compile(r"네트워크|보안\s*장비|방화벽|스위치|라우터|l4|network|firewall|switch", re.IGNORECASE)
 DECOM_STATUS = re.compile(r"폐기|불용|decom", re.IGNORECASE)
 
 
@@ -33,7 +34,9 @@ class Rule:
 
 
 def is_server(a: dict[str, Any]) -> bool:
-    return not NETWORK_CATEGORY.search(a.get("category") or "")
+    category = " ".join(a.get(k) or "" for k in ("category", "category_detail"))
+    return not (NETWORK_CATEGORY.search(category) or SECURITY_CATEGORY.search(category)
+                or re.search(r"스토리지|storage|nas|san|백업장비|백업 장비|backup|lto|tape|미분류 장비", category, re.IGNORECASE))
 
 
 def _eos(a: dict[str, Any]) -> str | None:
